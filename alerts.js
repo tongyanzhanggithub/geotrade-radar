@@ -11,7 +11,7 @@ const chinaData = require("./china-data.js");
 const MAX_ALERTS_PER_USER_PER_RUN = 5;
 
 function itemKey(item) {
-  return crypto.createHash("sha1").update(`${item.title}|${item.source || ""}`).digest("hex");
+  return crypto.createHash("sha1").update(`${item.title}|${item.source || ""}|${item.dedupeExtra || ""}`).digest("hex");
 }
 
 // 与前端 app.js 的 matchesProfile 同一套规则
@@ -68,6 +68,34 @@ async function collectMofcomItems() {
     }));
   } catch {
     return []; // 抓取失败不影响其他预警
+  }
+}
+
+// 运价异动 → 预警条目：综合指数环比变动超过阈值时生成一条，标题含主要航线词
+// 便于画像（关注航线）匹配。日期作为去重键的一部分，每个发布周期最多一条。
+async function collectFreightItems() {
+  try {
+    const data = await chinaData.freightIndex();
+    const c = data.composite;
+    if (!c || c.changePct == null || Math.abs(c.changePct) < 5) return []; // 5% 以内不预警
+    const direction = c.changePct > 0 ? "上涨" : "下跌";
+    const routeWords = (data.routes || []).map((r) => r.route).join(" ");
+    return [
+      {
+        kind: "运价异动",
+        title: `SCFI 海运综合运价指数${direction} ${Math.abs(c.changePct)}%（${c.current}）`,
+        summary: `较上期 ${c.previous} ${direction} ${Math.abs(c.change)} 点。${routeWords ? "覆盖航线：" + routeWords : ""}`.trim(),
+        countries: [],
+        sectors: ["航运", "物流", "出口"],
+        commodities: ["海运运价", "集装箱"],
+        route: routeWords || "海运",
+        url: data.sourceUrl,
+        source: "上海航运交易所 SCFI",
+        dedupeExtra: c.date || "",
+      },
+    ];
+  } catch {
+    return [];
   }
 }
 
@@ -179,7 +207,7 @@ async function runAlertCheck(getSnapshotFn, { log = console } = {}) {
   if (!subscribers.length) return { subscribers: 0, sent: 0 };
 
   const snapshot = await getSnapshotFn("day");
-  const items = [...collectItems(snapshot), ...(await collectMofcomItems())];
+  const items = [...collectItems(snapshot), ...(await collectMofcomItems()), ...(await collectFreightItems())];
   let totalSent = 0;
 
   for (const subscriber of subscribers) {
@@ -221,4 +249,4 @@ async function runAlertCheck(getSnapshotFn, { log = console } = {}) {
   return { subscribers: subscribers.length, sent: totalSent };
 }
 
-module.exports = { runAlertCheck, matchesProfile, collectItems, collectMofcomItems, itemKey, sendWebhook, sendEmail };
+module.exports = { runAlertCheck, matchesProfile, collectItems, collectMofcomItems, collectFreightItems, itemKey, sendWebhook, sendEmail };

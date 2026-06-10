@@ -21,6 +21,7 @@
     "import",
     "regions",
     "policy",
+    "freight",
     "reports",
   ];
 
@@ -1372,6 +1373,55 @@
         liveData.countryRiskLoading = false;
       });
   }
+  function ensureFreight() {
+    if (liveData.freight || liveData.freightLoading || liveData.freightFailed) return;
+    liveData.freightLoading = true;
+    fetch("/api/china/freight")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        liveData.freight = d;
+      })
+      .catch(() => {
+        liveData.freightFailed = true;
+      })
+      .finally(() => {
+        liveData.freightLoading = false;
+        if (state.view === "freight") render();
+      });
+  }
+  function viewFreight() {
+    const d = liveData.freight;
+    if (!d) {
+      const msg = liveData.freightFailed ? "运价数据暂不可用，请稍后再试" : "正在接入上海航运交易所运价数据…";
+      return `${viewHead("运价与航线雷达", "海运集装箱运价指数、分航线成本与异动预警")}<div class="cn-report-loading"><i></i>${msg}</div>`;
+    }
+    const c = d.composite || {};
+    const up = (c.change || 0) > 0;
+    const dir = c.change > 0 ? "▲" : c.change < 0 ? "▼" : "—";
+    return `
+    ${viewHead("运价与航线雷达", "海运集装箱运价指数、分航线成本与异动预警")}
+    ${sourceBadge({ source: d.source, period: c.date }, "综合指数实时抓取，分航线按周更新")}
+    <div class="cn-map-metrics">
+      ${metric("SCFI 综合指数", c.current != null ? String(c.current) : "—", c.date ? c.date + " 发布" : "")}
+      ${metric("环比涨跌", `${dir} ${c.change != null ? Math.abs(c.change) : "—"}`, c.changePct != null ? (up ? "+" : "") + c.changePct + "%" : "")}
+      ${metric("上期指数", c.previous != null ? String(c.previous) : "—", "上一发布周期")}
+      ${metric("运价方向", up ? "上行" : c.change < 0 ? "下行" : "持平", up ? "出口成本上升，关注订舱时机" : c.change < 0 ? "出口成本回落" : "暂稳")}
+    </div>
+    ${
+      d.routes && d.routes.length
+        ? `<h3 class="cn-section-sub">分航线运价（${esc(d.routesUpdatedAt || "最新")}）</h3>
+    <div class="cn-map-metrics">
+      ${d.routes
+        .slice(0, 12)
+        .map((r) => {
+          const rUp = (r.changePct || 0) > 0;
+          return `<div class="cn-mini-kpi"><span>${esc(r.route)}${r.unit ? " · " + esc(r.unit) : ""}</span><strong>${esc(String(r.rate))}</strong><small style="color:${rUp ? "var(--cn-red)" : "var(--cn-teal,#4cd9b0)"}">${rUp ? "+" : ""}${esc(String(r.changePct))}% ${r.note ? "· " + esc(r.note) : ""}</small></div>`;
+        })
+        .join("")}
+    </div>`
+        : `<div class="cn-source"><i></i>分航线运价待运营者按周更新（见 data/README.md）</div>`
+    }`;
+  }
   function ensureMofcom() {
     if (liveData.mofcom || liveData.mofcomLoading || liveData.mofcomFailed) return;
     liveData.mofcomLoading = true;
@@ -1429,6 +1479,7 @@
     import: viewImport,
     regions: viewRegions,
     policy: viewPolicy,
+    freight: viewFreight,
     reports: viewReports,
   };
 
@@ -1448,6 +1499,7 @@
     if (state.view === "markets") ensureCountryRisk();
     if (state.view === "import") ensureDependency();
     if (state.view === "policy") ensurePolicy();
+    if (state.view === "freight") ensureFreight();
   }
 
   function updateNav() {

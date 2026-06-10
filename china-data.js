@@ -648,6 +648,43 @@ async function mofcomAnnouncements() {
   });
 }
 
+// 运价与航线雷达：上海航运交易所 SCFI 综合指数（实时抓取）+ 分航线运价
+// （官网分航线为动态加载，由运营者按 data/README.md 维护 data/freight-routes.json）
+async function freightIndex() {
+  const live = await cached("scfi-index", async () => {
+    const response = await fetch("https://www.sse.net.cn/index/singleIndex?indexType=scfi", {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`sse.net.cn ${response.status}`);
+    const html = await response.text();
+    const idx = html.indexOf("综合指数");
+    const after = idx >= 0 ? html.slice(idx, idx + 400) : "";
+    const nums = [...after.matchAll(/<td[^>]*>\s*([\d.]+)\s*<\/td>/g)].map((m) => Number(m[1]));
+    const dateMatch = html.match(/(20\d{2}-\d{1,2}-\d{1,2})/);
+    if (nums.length < 2) throw new Error("SCFI 解析失败");
+    const current = nums[0];
+    const previous = nums[1];
+    return {
+      index: "SCFI 上海出口集装箱运价指数（综合）",
+      current,
+      previous,
+      change: Math.round((current - previous) * 100) / 100,
+      changePct: previous ? Math.round(((current - previous) / previous) * 1000) / 10 : null,
+      date: dateMatch ? dateMatch[1] : null,
+    };
+  });
+  const routesFile = readDataFile("freight-routes.json");
+  return {
+    source: "上海航运交易所 SCFI",
+    sourceUrl: "https://www.sse.net.cn/index/singleIndex?indexType=scfi",
+    fetchedAt: new Date().toISOString(),
+    composite: live,
+    routes: routesFile && Array.isArray(routesFile.routes) ? routesFile.routes : [],
+    routesUpdatedAt: routesFile ? routesFile.updatedAt || null : null,
+  };
+}
+
 function readDataFile(name) {
   try {
     return JSON.parse(fs.readFileSync(path.join(__dirname, "data", name), "utf8"));
@@ -688,4 +725,4 @@ async function countryRisk() {
   };
 }
 
-module.exports = { overview, product, market, dependency, tradeRemedies, regions, generateReport, mofcomAnnouncements, customsMonthly, countryRisk };
+module.exports = { overview, product, market, dependency, tradeRemedies, regions, generateReport, mofcomAnnouncements, customsMonthly, countryRisk, freightIndex };

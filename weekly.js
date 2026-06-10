@@ -74,7 +74,11 @@ async function runWeekly(getSnapshotFn, { dryRun = false, log = console } = {}) 
   if (dryRun) return { week, eligible: subscribers.length, sent: 0, dryRun: true };
 
   const snapshot = await getSnapshotFn("week");
-  const items = [...alerts.collectItems(snapshot), ...(await alerts.collectMofcomItems())];
+  const items = [
+    ...alerts.collectItems(snapshot),
+    ...(await alerts.collectMofcomItems()),
+    ...(await alerts.collectFreightItems()),
+  ];
   let sent = 0;
 
   for (const subscriber of subscribers) {

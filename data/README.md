@@ -45,3 +45,25 @@ https://www.sinosure.com.cn/ （资讯中心 → 国别风险研究）
 
 - `trend`：稳定 / 上调 / 下调（相对上一年度）
 - `note`：选填，一句话说明
+
+## freight-routes.json — SCFI 分航线运价
+
+来源：上海航运交易所 SCFI 页面 https://www.sse.net.cn/index/singleIndex?indexType=scfi
+（综合指数已自动实时抓取，分航线运价数值官网为动态加载，需手工填写）
+
+每周五更新。把当周各航线运价填入 `routes`（按重要性排序）：
+
+```json
+{
+  "source": "上海航运交易所 SCFI 分航线",
+  "updatedAt": "2026-06-10",
+  "routes": [
+    { "route": "欧洲", "unit": "USD/TEU", "rate": 0, "changePct": 0, "note": "" },
+    { "route": "美西", "unit": "USD/FEU", "rate": 0, "changePct": 0, "note": "" }
+  ]
+}
+```
+
+- `rate`：当周运价；`changePct`：环比涨跌百分比（正=涨）
+- `note`：选填，如"红海绕行推升"
+- 不填时页面只显示自动抓取的综合指数，分航线区块隐藏

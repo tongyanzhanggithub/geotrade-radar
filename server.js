@@ -1285,6 +1285,14 @@ const server = http.createServer(async (request, response) => {
     }
     return;
   }
+  if (pathname === "/api/china/freight") {
+    try {
+      sendJson(response, 200, await chinaData.freightIndex());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
   if (pathname === "/api/china/mofcom") {
     try {
       sendJson(response, 200, await chinaData.mofcomAnnouncements());
