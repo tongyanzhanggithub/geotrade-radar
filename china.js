@@ -222,6 +222,7 @@
 
   const MARKETS = {
     印度尼西亚: {
+      code: 360,
       region: "东盟",
       share: 28,
       topFromCN: ["机电产品", "钢铁制品", "手机及零件", "纺织面料"],
@@ -232,6 +233,7 @@
       score: 85,
     },
     越南: {
+      code: 704,
       region: "东盟",
       share: 32,
       topFromCN: ["机电零部件", "面料辅料", "钢铁", "塑料原料"],
@@ -242,6 +244,7 @@
       score: 81,
     },
     墨西哥: {
+      code: 484,
       region: "北美",
       share: 21,
       topFromCN: ["汽车零部件", "机电产品", "电子元件", "家电"],
@@ -252,6 +255,7 @@
       score: 77,
     },
     沙特阿拉伯: {
+      code: 682,
       region: "中东",
       share: 19,
       topFromCN: ["机电产品", "钢铁", "光伏组件", "工程机械"],
@@ -262,6 +266,7 @@
       score: 83,
     },
     巴西: {
+      code: 76,
       region: "拉美",
       share: 24,
       topFromCN: ["机电产品", "化工", "汽车零部件", "手机"],
@@ -275,6 +280,7 @@
 
   const DEPENDENCY = [
     {
+      hs: "8542",
       name: "集成电路(高端芯片)",
       amount: "¥2.6万亿",
       sources: ["中国台湾", "韩国", "美国", "日本"],
@@ -284,6 +290,7 @@
       risk: "高",
     },
     {
+      hs: "848340",
       name: "工业机器人减速器(RV/谐波)",
       amount: "¥210亿",
       sources: ["日本"],
@@ -293,6 +300,7 @@
       risk: "较高",
     },
     {
+      hs: "2709",
       name: "原油",
       amount: "¥2.3万亿",
       sources: ["沙特阿拉伯", "俄罗斯", "伊拉克", "阿联酋"],
@@ -302,6 +310,7 @@
       risk: "中",
     },
     {
+      hs: "1201",
       name: "大豆",
       amount: "¥4,100亿",
       sources: ["巴西", "美国", "阿根廷"],
@@ -311,6 +320,7 @@
       risk: "中",
     },
     {
+      hs: "8457",
       name: "高端数控机床",
       amount: "¥780亿",
       sources: ["日本", "德国", "瑞士"],
@@ -320,6 +330,7 @@
       risk: "较高",
     },
     {
+      hs: "370790",
       name: "光刻胶(高端)",
       amount: "¥120亿",
       sources: ["日本", "韩国"],
@@ -511,7 +522,7 @@
   }
 
   function viewDashboard() {
-    const d = DASHBOARD;
+    const d = liveData.overview || DASHBOARD;
     const trendMax = Math.max(...d.trend);
     const trendMin = Math.min(...d.trend);
     const pts = d.trend
@@ -523,6 +534,7 @@
       .join(" ");
     return `
     ${viewHead("中国贸易总览", "进出口态势、省市热力、实时信号与异常波动")}
+    ${sourceBadge(liveData.overview, "总额与商品/市场为实时；信号、异常、热点为参考演示")}
     <div class="cn-terminal">
       <aside class="cn-rail">
         <section class="cn-panel">
@@ -604,9 +616,10 @@
 
   function viewProducts() {
     const keys = Object.keys(PRODUCTS);
-    const p = PRODUCTS[state.product];
+    const p = liveData.products[state.product] || PRODUCTS[state.product];
     return `
     ${viewHead("商品机会雷达", "输入商品或 HS 编码，定位中国出口机会与准入风险")}
+    ${sourceBadge(liveData.products[state.product], "出口规模/目的国/增长为实时；竞争国与准入风险为定性参考")}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -635,9 +648,10 @@
 
   function viewMarkets() {
     const keys = Object.keys(MARKETS);
-    const m = MARKETS[state.market];
+    const m = liveData.markets[state.market] || MARKETS[state.market];
     return `
     ${viewHead("出口市场雷达", "选择目标国家，评估中国企业进入机会与政策风险")}
+    ${sourceBadge(liveData.markets[state.market], "进口商品/增长/份额为实时；准入风险为定性参考")}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -657,7 +671,12 @@
       <div class="cn-result-grid">
         ${field("从中国进口最多的商品", tagList(m.topFromCN))}
         ${field("增长最快商品", tagList(m.fastest))}
-        ${field("中国市场份额", `<strong class="cn-bignum">${m.share}%</strong>`)}
+        ${field(
+          "中国对该国出口额",
+          `<strong class="cn-bignum">${esc(m.exportText || "—")}</strong><p class="cn-note">中国市场份额约 ${esc(
+            m.shareText || (m.share != null ? m.share + "%" : "—")
+          )}（参考）</p>`
+        )}
         ${field("适合中国企业进入的细分品类", tagList(m.niches))}
         ${field("关税与政策风险", `${riskTag(m.barrierLevel)}<p class="cn-note">${esc(m.barrier)}</p>`)}
       </div>
@@ -665,10 +684,13 @@
   }
 
   function viewImport() {
+    const items = liveData.dependency || DEPENDENCY;
+    const depLive = (liveData.dependency || []).find((d) => d.live);
     return `
     ${viewHead("进口依赖雷达", "中国关键进口依赖商品、来源集中度与国产替代机会")}
+    ${sourceBadge(depLive ? { period: depLive.period } : null, "进口额/来源国/集中度为实时；替代难度与中断风险为定性参考")}
     <div class="cn-dep">
-      ${DEPENDENCY.map(
+      ${items.map(
         (it) => `
         <article class="cn-dep-card">
           <div class="cn-dep-head">
@@ -691,14 +713,17 @@
   }
 
   function viewRegions() {
-    const top = [...REGIONS.list].sort((a, b) => b.heat - a.heat)[0];
+    const lr = liveData.regions;
+    const top = lr ? lr.list[0] : [...REGIONS.list].sort((a, b) => b.heat - a.heat)[0];
+    const cr5 = lr ? Math.round(lr.list.slice(0, 5).reduce((s, p) => s + p.share, 0)) : null;
     return `
-    ${viewHead("省市产业雷达", "各省产业优势、出口热度与产业机会 · 交互式中国地图")}
+    ${viewHead("省市产业雷达", "各省出口规模、产业优势与机会 · 交互式中国地图")}
+    ${sourceBadge(lr ? { source: lr.source, period: lr.period } : null, "出口额为海关口径；产业优势/机会为分析观点")}
     <div class="cn-map-metrics">
-      ${metric("出口热度最高", top.name, "热度 " + top.heat)}
-      ${metric("重点机会省", "重庆 · 安徽", "新能源汽摩出海")}
-      ${metric("覆盖省市", REGIONS.list.length + " 个", "重点样板持续扩展")}
-      ${metric("数据视图", "省级热力", "点击省份查看详情")}
+      ${metric("出口第一大省", top.name, lr ? top.exportText : "热度 " + top.heat)}
+      ${metric("前五省合计占比", cr5 != null ? cr5 + "%" : "—", "出口集中度 CR5")}
+      ${metric("覆盖省市", (lr ? lr.list.length : 31) + " 个", "全口径省级出口")}
+      ${metric("数据口径", lr ? "海关 · 2024" : "省级热力", "点击省份查看详情")}
     </div>
     <div class="cn-region-wrap">
       <div class="cn-map-stage">
@@ -716,23 +741,39 @@
     </div>`;
   }
 
+  function regionTradeBlock(name) {
+    const rg = liveData.regions && liveData.regions.byName[name];
+    if (!rg) return "";
+    return `<div class="cn-region-trade">
+      <span>出口额 · ${esc(liveData.regions.period)}</span>
+      <strong>${esc(rg.exportText)}</strong>
+      <small>全国第 ${rg.rank} 位 · 占全国 ${rg.share}%</small>
+    </div>`;
+  }
   function regionDetailHtml(name) {
+    const head = regionTradeBlock(name);
     const d = REGIONS.detail[name];
-    if (d) return renderChongqing(d);
+    if (d) return head + renderChongqing(d);
     const p = REGIONS.list.find((x) => x.name === name);
     if (p) {
-      return `
+      return (
+        head +
+        `
         <span class="cn-result-tag">省市产业</span>
         <h3>${esc(p.name)}</h3>
         <div class="cn-field"><span>优势产业</span>${tagList(p.adv)}</div>
         <div class="cn-field"><span>产业机会</span><p class="cn-note">${esc(p.opp)}</p></div>
         <div class="cn-field"><span>主要风险</span><p class="cn-note">${esc(p.risk)}</p></div>
-        <p class="cn-hint">该省市详细样板建设中，当前重点展示「重庆」样板页。</p>`;
+        <p class="cn-hint">出口额为海关口径真实数据；产业优势/机会/风险为分析观点。</p>`
+      );
     }
-    return `
+    return (
+      head +
+      `
       <span class="cn-result-tag">省市产业</span>
       <h3>${esc(name)}</h3>
-      <p class="cn-hint">该地区暂未纳入重点样板。当前重点覆盖：广东、江苏、上海、浙江、重庆、安徽、山东、四川，更多省市数据陆续接入。</p>`;
+      <p class="cn-hint">出口额为海关口径真实数据。该省份产业专题样板建设中，重点样板见「重庆」。</p>`
+    );
   }
 
   function renderChongqing(d) {
@@ -761,7 +802,9 @@
     return full.replace(/(维吾尔自治区|壮族自治区|回族自治区|特别行政区|自治区|省|市)$/, "");
   }
   function heatFor(full) {
-    const p = REGIONS.list.find((x) => x.name === shortName(full));
+    const sn = shortName(full);
+    if (liveData.regions && liveData.regions.byName[sn]) return liveData.regions.byName[sn].heat;
+    const p = REGIONS.list.find((x) => x.name === sn);
     return p ? p.heat : null;
   }
   function heatColor(h) {
@@ -780,11 +823,15 @@
     const el = document.getElementById("cn-map-focus");
     if (!el) return;
     const p = REGIONS.list.find((x) => x.name === name);
+    const rg = liveData.regions && liveData.regions.byName[name];
+    const sub = rg
+      ? `<span>出口 ${esc(rg.exportText)} · 全国第 ${rg.rank}</span>`
+      : heat == null
+      ? `<span>暂无数据</span>`
+      : `<span>出口热度 ${heat}</span>`;
     el.hidden = false;
     el.innerHTML =
-      `<strong>${esc(name)}</strong>` +
-      (heat == null ? `<span>暂无热度数据</span>` : `<span>出口热度 ${heat}</span>`) +
-      (p ? `<div class="cn-focus-tags">${p.adv.map((a) => `<b>${esc(a)}</b>`).join("")}</div>` : "");
+      `<strong>${esc(name)}</strong>` + sub + (p ? `<div class="cn-focus-tags">${p.adv.map((a) => `<b>${esc(a)}</b>`).join("")}</div>` : "");
   }
   function selectProvince(layer, full) {
     const sn = shortName(full);
@@ -909,8 +956,50 @@
   }
 
   function viewPolicy() {
+    return liveData.policy ? viewPolicyLive(liveData.policy) : viewPolicyDemo();
+  }
+  function viewPolicyLive(p) {
+    const s = p.summary;
+    const m0 = (arr) => (arr[0] ? arr[0].label : "—");
+    const n0 = (arr) => (arr[0] ? arr[0].note : "");
+    return `
+    ${viewHead("政策与合规雷达", "中国遭遇的反倾销 / 反补贴贸易救济调查 · 实时案件")}
+    ${sourceBadge({ source: p.source, period: "2020 年至今" }, "WTO 成员通报的对华贸易救济调查")}
+    <div class="cn-map-metrics">
+      ${metric("对华救济案件(累计)", s.total + " 起", "反倾销 " + s.ad + " · 反补贴 " + s.cv)}
+      ${metric("近两年新增", s.recent + " 起", s.recentCut + " 年起")}
+      ${metric("主要发起方", m0(s.topInitiators), n0(s.topInitiators))}
+      ${metric("主要涉案行业", m0(s.topSectors), n0(s.topSectors))}
+    </div>
+    <div class="cn-grid-2">
+      ${panel("主要发起方（对华）", bars(s.topInitiators, "var(--cn-red)"))}
+      ${panel("主要涉案行业", bars(s.topSectors, "var(--cn-gold)"))}
+    </div>
+    <h3 class="cn-section-sub">近期对华贸易救济案件</h3>
+    <div class="cn-policy">
+      ${p.cases
+        .map(
+          (c) => `
+        <article class="cn-policy-card cn-policy--${c.type === "反倾销" ? "high" : "mid"}">
+          <header>
+            <span class="cn-policy-type">${esc(c.type)}</span>
+            <span class="cn-risk cn-risk--${c.type === "反倾销" ? "high" : "mid"}">${esc(c.date)}</span>
+          </header>
+          <h3>${esc(c.product)}</h3>
+          <div class="cn-policy-meta">
+            <div><span>发起方</span><b>${esc(c.reporter)}</b></div>
+            <div><span>涉案行业</span><b>${esc(c.sector)}</b></div>
+            <div><span>当前状态</span><b>${esc(c.status)}</b></div>
+          </div>
+        </article>`
+        )
+        .join("")}
+    </div>`;
+  }
+  function viewPolicyDemo() {
     return `
     ${viewHead("政策与合规雷达", "反倾销、反补贴、关税、出口管制、337调查与绿色壁垒")}
+    ${sourceBadge(null)}
     <div class="cn-policy">
       ${POLICY.map(
         (e) => `
@@ -934,22 +1023,18 @@
 
   function viewReports() {
     const keys = Object.keys(REPORTS);
-    const r = REPORTS[state.report];
-    return `
-    ${viewHead("AI 贸易产业简报", "输入商品、国家、省份或政策事件，生成结构化报告")}
-    <form class="cn-report-input" id="cn-report-form">
-      <input id="cn-report-q" type="text" autocomplete="off" placeholder="例如：摩托车零配件 / 印度尼西亚 / 重庆 / 欧盟电动车关税…" />
-      <button type="submit" class="cn-btn cn-btn--primary">生成简报</button>
-    </form>
-    <div class="cn-selector">
-      ${keys
-        .map((k) => `<button class="cn-pill ${k === state.report ? "active" : ""}" data-report="${esc(k)}">${esc(k)}</button>`)
-        .join("")}
-    </div>
-    <article class="cn-report">
+    const live = liveData.report;
+    const r = live ? live.data : REPORTS[state.report];
+    const title = live ? live.query : state.report;
+    const badge = live
+      ? `<div class="cn-source cn-source--live"><i></i>Claude ${esc(live.model)} 实时生成 · 基于 UN Comtrade / WTO 真实数据</div>`
+      : `<div class="cn-source"><i></i>示例报告 · 在上方输入框输入商品/国家/省份/政策事件，由 AI 基于真实数据生成</div>`;
+    const reportBody = liveData.reportLoading
+      ? `<div class="cn-report-loading"><i></i>AI 正在综合真实贸易与政策数据生成简报…（约 10–20 秒）</div>`
+      : `<article class="cn-report">
       <div class="cn-report-head">
-        <span class="cn-result-tag">AI 结构化简报</span>
-        <h3>${esc(state.report)}</h3>
+        <span class="cn-result-tag">${live ? "AI 实时简报" : "示例简报"}</span>
+        <h3>${esc(title)}</h3>
       </div>
       ${reportBlock("核心结论", `<p>${esc(r.conclusion)}</p>`)}
       <div class="cn-grid-2">
@@ -962,6 +1047,22 @@
       </div>
       ${reportBlock("未来观察点", tagList(r.future), "watch")}
     </article>`;
+    return `
+    ${viewHead("AI 贸易产业简报", "输入商品、国家、省份或政策事件，由 AI 基于真实数据生成结构化报告")}
+    <form class="cn-report-input" id="cn-report-form">
+      <input id="cn-report-q" type="text" autocomplete="off" value="${esc(live ? live.query : "")}" placeholder="例如：摩托车零配件 / 印度尼西亚 / 欧盟电动车关税…" />
+      <button type="submit" class="cn-btn cn-btn--primary"${liveData.reportLoading ? " disabled" : ""}>${liveData.reportLoading ? "生成中…" : "生成简报"}</button>
+    </form>
+    <div class="cn-selector">
+      ${keys
+        .map(
+          (k) => `<button class="cn-pill ${!live && k === state.report ? "active" : ""}" data-report="${esc(k)}">${esc(k)}</button>`
+        )
+        .join("")}
+    </div>
+    ${badge}
+    ${liveData.reportError ? `<div class="cn-report-error">生成失败：${esc(liveData.reportError)}（下方为示例，可重试）</div>` : ""}
+    ${reportBody}`;
   }
 
   // ----------------------- 小组件 -----------------------
@@ -984,6 +1085,235 @@
     return { 高: "high", 较高: "high", 中: "mid", 低: "low" }[level] || "mid";
   }
 
+  // ----------------------- 真实数据接入（UN Comtrade）-----------------------
+  const liveData = {
+    overview: null,
+    overviewLoading: false,
+    overviewFailed: false,
+    products: {},
+    productLoading: {},
+    productFailed: {},
+    markets: {},
+    marketLoading: {},
+    marketFailed: {},
+    dependency: null,
+    dependencyLoading: false,
+    dependencyFailed: false,
+    policy: null,
+    policyLoading: false,
+    policyFailed: false,
+    regions: null,
+    regionsLoading: false,
+    regionsFailed: false,
+    report: null,
+    reportLoading: false,
+    reportError: null,
+  };
+
+  function adaptOverview(o) {
+    const m = (arr) => (arr || []).map((x) => ({ label: x.label, value: x.value, note: x.valueText }));
+    return {
+      live: true,
+      period: o.period,
+      source: o.source,
+      updatedAt: o.updatedAt,
+      totals: o.totals,
+      trend: (o.trend || []).map((t) => t.value),
+      topExports: m(o.topExports),
+      topImports: m(o.topImports),
+      exportMarkets: m(o.exportMarkets),
+      importSources: m(o.importSources),
+      anomalies: DASHBOARD.anomalies, // 异常波动暂为参考演示
+    };
+  }
+  function adaptProduct(api, name) {
+    const preset = PRODUCTS[name] || {};
+    return {
+      live: true,
+      period: api.period,
+      hs: api.hs,
+      desc: api.desc,
+      scale: api.scale,
+      yoy: api.yoy,
+      score: api.score,
+      dest: (api.dest || []).map((d) => `${d.name}（${d.valueText}）`),
+      fastest: api.fastest && api.fastest.length ? api.fastest : preset.fastest || [],
+      rivals: preset.rivals || [],
+      barrier: preset.barrier || "需结合目标国关税、认证与准入政策综合评估。",
+      barrierLevel: preset.barrierLevel || "中",
+    };
+  }
+  function ensureOverview() {
+    if (liveData.overview || liveData.overviewLoading || liveData.overviewFailed) return;
+    liveData.overviewLoading = true;
+    fetch("/api/china/overview")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((o) => {
+        liveData.overview = adaptOverview(o);
+      })
+      .catch(() => {
+        liveData.overviewFailed = true;
+      })
+      .finally(() => {
+        liveData.overviewLoading = false;
+        if (state.view === "dashboard") render();
+      });
+  }
+  function ensureProduct(name) {
+    const preset = PRODUCTS[name];
+    if (!preset || liveData.products[name] || liveData.productLoading[name] || liveData.productFailed[name]) return;
+    liveData.productLoading[name] = true;
+    fetch("/api/china/product?hs=" + encodeURIComponent(preset.hs))
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((api) => {
+        liveData.products[name] = adaptProduct(api, name);
+      })
+      .catch(() => {
+        liveData.productFailed[name] = true;
+      })
+      .finally(() => {
+        liveData.productLoading[name] = false;
+        if (state.view === "products" && state.product === name) render();
+      });
+  }
+  function adaptMarket(api, name) {
+    const preset = MARKETS[name] || {};
+    return {
+      live: true,
+      period: api.period,
+      region: preset.region || "",
+      exportText: api.totalToCountry || "—",
+      shareText: preset.share != null ? preset.share + "%" : "—",
+      topFromCN: api.topFromCN && api.topFromCN.length ? api.topFromCN : preset.topFromCN || [],
+      fastest: api.fastest && api.fastest.length ? api.fastest : preset.fastest || [],
+      niches: api.niches && api.niches.length ? api.niches : preset.niches || [],
+      barrier: preset.barrier || "需结合目标国关税、本地化与准入政策综合评估。",
+      barrierLevel: preset.barrierLevel || "中",
+      score: api.score,
+    };
+  }
+  function adaptDependency(api) {
+    const items = api.items || [];
+    return DEPENDENCY.map((preset) => {
+      const live = items.find((i) => i.hs === preset.hs);
+      if (!live) return preset;
+      return {
+        live: true,
+        hs: preset.hs,
+        name: preset.name,
+        amount: live.amount,
+        sources: live.sources && live.sources.length ? live.sources : preset.sources,
+        concentration: live.concentration,
+        difficulty: preset.difficulty,
+        domestic: preset.domestic,
+        risk: preset.risk,
+        period: live.period,
+      };
+    });
+  }
+  function ensureMarket(name) {
+    const preset = MARKETS[name];
+    if (!preset || !preset.code || liveData.markets[name] || liveData.marketLoading[name] || liveData.marketFailed[name]) return;
+    liveData.marketLoading[name] = true;
+    fetch("/api/china/market?partner=" + preset.code)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((api) => {
+        liveData.markets[name] = adaptMarket(api, name);
+      })
+      .catch(() => {
+        liveData.marketFailed[name] = true;
+      })
+      .finally(() => {
+        liveData.marketLoading[name] = false;
+        if (state.view === "markets" && state.market === name) render();
+      });
+  }
+  function ensureDependency() {
+    if (liveData.dependency || liveData.dependencyLoading || liveData.dependencyFailed) return;
+    liveData.dependencyLoading = true;
+    const hs = DEPENDENCY.map((d) => d.hs).filter(Boolean).join(",");
+    fetch("/api/china/dependency?hs=" + encodeURIComponent(hs))
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((api) => {
+        liveData.dependency = adaptDependency(api);
+      })
+      .catch(() => {
+        liveData.dependencyFailed = true;
+      })
+      .finally(() => {
+        liveData.dependencyLoading = false;
+        if (state.view === "import") render();
+      });
+  }
+  function generateReport(q) {
+    liveData.reportLoading = true;
+    liveData.reportError = null;
+    render();
+    fetch("/api/china/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ query: q }),
+    })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "生成失败");
+        return d;
+      })
+      .then((d) => {
+        liveData.report = { query: d.query || q, data: d.report, model: d.model || "Sonnet 4.6" };
+      })
+      .catch((err) => {
+        liveData.reportError = err.message;
+      })
+      .finally(() => {
+        liveData.reportLoading = false;
+        if (state.view === "reports") render();
+      });
+  }
+  function ensureRegions() {
+    if (liveData.regions || liveData.regionsLoading || liveData.regionsFailed) return;
+    liveData.regionsLoading = true;
+    fetch("/api/china/regions")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        const byName = {};
+        (d.provinces || []).forEach((p) => (byName[p.name] = p));
+        liveData.regions = { source: d.source, period: d.period, list: d.provinces || [], byName };
+      })
+      .catch(() => {
+        liveData.regionsFailed = true;
+      })
+      .finally(() => {
+        liveData.regionsLoading = false;
+        if (state.view === "regions") render();
+      });
+  }
+  function ensurePolicy() {
+    if (liveData.policy || liveData.policyLoading || liveData.policyFailed) return;
+    liveData.policyLoading = true;
+    fetch("/api/china/trade-remedies")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        liveData.policy = d;
+      })
+      .catch(() => {
+        liveData.policyFailed = true;
+      })
+      .finally(() => {
+        liveData.policyLoading = false;
+        if (state.view === "policy") render();
+      });
+  }
+  function sourceBadge(live, note) {
+    if (live && (live.period != null || live.source)) {
+      const src = live.source || "UN Comtrade";
+      const per = live.period != null ? " · " + live.period + (typeof live.period === "number" ? " 年度" : "") : "";
+      return `<div class="cn-source cn-source--live"><i></i>数据来源：${esc(src)}${per}${note ? " · " + esc(note) : ""}</div>`;
+    }
+    return `<div class="cn-source"><i></i>正在接入实时数据…（暂显示示例值，稍候自动刷新）</div>`;
+  }
+
   // ----------------------- 路由 + 渲染 -----------------------
   const RENDERERS = {
     home: viewHome,
@@ -1003,7 +1333,13 @@
     window.scrollTo(0, 0);
     updateNav();
     bindViewEvents();
+    if (state.view === "regions") ensureRegions();
     if (state.view === "regions" || state.view === "dashboard") mountChinaMap();
+    if (state.view === "dashboard") ensureOverview();
+    if (state.view === "products") ensureProduct(state.product);
+    if (state.view === "markets") ensureMarket(state.market);
+    if (state.view === "import") ensureDependency();
+    if (state.view === "policy") ensurePolicy();
   }
 
   function updateNav() {
@@ -1082,12 +1418,8 @@
       reportForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const q = document.getElementById("cn-report-q").value.trim();
-        if (!q) return;
-        // 关键词命中预置报告，否则用最贴近的预置
-        const hit = Object.keys(REPORTS).find((k) => k.includes(q) || q.includes(k.split(" · ")[0]));
-        state.report = hit || Object.keys(REPORTS)[0];
-        showToast(hit ? `已生成「${state.report}」简报` : `已为「${q}」生成最相关简报`);
-        render();
+        if (!q || liveData.reportLoading) return;
+        generateReport(q);
       });
     }
   }
@@ -1106,7 +1438,11 @@
       if (t.hasAttribute("data-product")) state.product = t.getAttribute("data-product");
       if (t.hasAttribute("data-market")) state.market = t.getAttribute("data-market");
       if (t.hasAttribute("data-region")) state.region = t.getAttribute("data-region");
-      if (t.hasAttribute("data-report")) state.report = t.getAttribute("data-report");
+      if (t.hasAttribute("data-report")) {
+        state.report = t.getAttribute("data-report");
+        liveData.report = null; // 切回示例
+        liveData.reportError = null;
+      }
       if (t.hasAttribute("data-go")) {
         return go(t.getAttribute("data-go"));
       }

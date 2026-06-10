@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const auth = require("./auth.js");
+const chinaData = require("./china-data.js");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
@@ -1212,8 +1213,74 @@ const server = http.createServer(async (request, response) => {
     sendJson(response, 200, { user });
     return;
   }
+  if (pathname === "/api/china/overview") {
+    try {
+      sendJson(response, 200, await chinaData.overview());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/product") {
+    try {
+      sendJson(response, 200, await chinaData.product(url.searchParams.get("hs")));
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/market") {
+    try {
+      sendJson(response, 200, await chinaData.market(url.searchParams.get("partner")));
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/dependency") {
+    try {
+      sendJson(response, 200, await chinaData.dependency(url.searchParams.get("hs")));
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/trade-remedies") {
+    try {
+      sendJson(response, 200, await chinaData.tradeRemedies());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/regions") {
+    try {
+      sendJson(response, 200, await chinaData.regions());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/report" && request.method === "POST") {
+    const user = currentUser(request);
+    if (!user) {
+      sendJson(response, 401, { error: "请先登录后再生成简报" });
+      return;
+    }
+    if (!rateLimit(`report:${clientIp(request)}`, 30, 60 * 60 * 1000)) {
+      sendJson(response, 429, { error: "简报生成过于频繁，请稍后再试" });
+      return;
+    }
+    try {
+      const body = await readJsonBody(request);
+      sendJson(response, 200, await chinaData.generateReport(body.query));
+    } catch (error) {
+      sendJson(response, error.code === "NO_KEY" ? 503 : 502, { error: error.message });
+    }
+    return;
+  }
   if (pathname.startsWith("/api/admin/")) {
-    const adminToken = process.env.ADMIN_TOKEN || "test123";
+    const adminToken = process.env.ADMIN_TOKEN;
     if (!adminToken) {
       sendJson(response, 503, { error: "管理后台未启用：服务器未设置 ADMIN_TOKEN" });
       return;

@@ -160,6 +160,33 @@ body.china {
 }
 .cn-view-head p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
 
+.cn-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: -8px 0 20px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(16, 21, 22, 0.6);
+}
+.cn-source i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.cn-source--live i {
+  background: var(--cn-green);
+  box-shadow: 0 0 0 3px rgba(88, 213, 188, 0.18);
+}
+.cn-source--live {
+  color: var(--cn-green);
+  border-color: rgba(88, 213, 188, 0.35);
+}
+
 .cn-footer {
   display: flex;
   flex-wrap: wrap;
@@ -609,6 +636,16 @@ body.china {
 .cn-province.active { border-color: #fff; box-shadow: 0 0 0 1px #fff inset; }
 
 .cn-region-detail { padding: 24px; border: 1px solid var(--line-soft); border-radius: 18px; background: rgba(16, 21, 22, 0.65); }
+.cn-region-trade {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(229, 86, 74, 0.3);
+  border-radius: 12px;
+  background: rgba(229, 86, 74, 0.07);
+}
+.cn-region-trade span { font-size: 11px; letter-spacing: 0.04em; color: var(--muted); }
+.cn-region-trade strong { display: block; margin: 4px 0 2px; font-size: 24px; font-weight: 700; color: var(--cn-red); }
+.cn-region-trade small { font-size: 12px; color: var(--muted); }
 .cn-region-detail h3 { margin: 6px 0 0; font-size: 20px; font-weight: 700; }
 .cn-pillars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0; }
 .cn-pillar { padding: 14px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2); }
@@ -617,6 +654,7 @@ body.china {
 .cn-region-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
 
 /* ---------- 政策风险 ---------- */
+.cn-section-sub { max-width: 1180px; margin: 6px auto 14px; font-size: 15px; font-weight: 700; color: var(--text); }
 .cn-policy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .cn-policy-card {
   position: relative;
@@ -673,6 +711,35 @@ body.china {
 .cn-report-block--win h4 { color: var(--cn-green); }
 .cn-report-block--loss h4 { color: var(--cn-red); }
 .cn-report-block--watch h4 { color: var(--cn-gold); }
+.cn-report-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 40px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: rgba(16, 21, 22, 0.4);
+  color: var(--muted);
+  font-size: 14px;
+}
+.cn-report-loading i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--cn-red);
+  animation: cn-spin 0.8s linear infinite;
+}
+@keyframes cn-spin { to { transform: rotate(360deg); } }
+.cn-report-error {
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  border: 1px solid rgba(229, 86, 74, 0.4);
+  border-radius: 12px;
+  background: rgba(229, 86, 74, 0.08);
+  color: var(--cn-red);
+  font-size: 13px;
+}
 .cn-list { margin: 0; padding-left: 18px; }
 .cn-list li { font-size: 13.5px; line-height: 1.7; color: var(--text); }
 
