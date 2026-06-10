@@ -563,6 +563,13 @@
           仅显示高风险事件
         </label>
 
+        <label class="risk-toggle">
+          <input id="my-radar-only" type="checkbox" />
+          <span></span>
+          我的雷达（按我的画像过滤）
+          <button class="icon-button" id="profile-edit-button" type="button" title="设置我的画像" style="margin-left:auto">⚙</button>
+        </label>
+
         <div class="event-list" id="event-list" aria-live="polite"></div>
       </aside>
 
@@ -877,9 +884,34 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    <script src="./app.js"></script>
+    <div class="modal-overlay" id="profile-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+        <button class="icon-button modal-close" id="profile-modal-close" type="button" title="关闭">✕</button>
+        <h2 id="profile-modal-title">我的画像</h2>
+        <p class="modal-subtitle">填写后，勾选“我的雷达”即可只看与你业务相关的事件。多个值用中文或英文逗号分隔。</p>
+        <form id="profile-form" class="modal-form">
+          <label>
+            品类关键词（如：锂电池, 光伏, 家具）
+            <input type="text" id="profile-hs" placeholder="锂电池, 光伏" />
+          </label>
+          <label>
+            主要出口市场（如：美国, 欧盟, 东南亚）
+            <input type="text" id="profile-countries" placeholder="美国, 欧盟" />
+          </label>
+          <label>
+            关注航线（如：红海, 亚洲—欧洲, 太平洋）
+            <input type="text" id="profile-routes" placeholder="红海, 亚洲—欧洲" />
+          </label>
+          <p class="modal-error" id="profile-error" hidden></p>
+          <button class="modal-submit" id="profile-save" type="submit">保存画像</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="./app.js"</script>
     <script src="./upgrade.js"></script>
     <script src="./live-data.js"></script>
     <script src="./account.js"></script>
+    <script src="./profile.js"></script>
   </body>
 </html>

@@ -1213,6 +1213,32 @@ const server = http.createServer(async (request, response) => {
     sendJson(response, 200, { user });
     return;
   }
+  if (pathname === "/api/profile") {
+    const user = currentUser(request);
+    if (!user) {
+      sendJson(response, 401, { error: "请先登录" });
+      return;
+    }
+    if (request.method === "GET") {
+      sendJson(response, 200, { profile: auth.getProfile(user.id) });
+      return;
+    }
+    if (request.method === "PUT" || request.method === "POST") {
+      if (user.memberLevel === "free") {
+        sendJson(response, 403, { error: "个性化雷达为会员专属功能，请升级会员后使用" });
+        return;
+      }
+      try {
+        const body = await readJsonBody(request);
+        sendJson(response, 200, { profile: auth.saveProfile(user.id, body) });
+      } catch (error) {
+        sendJson(response, 400, { error: error.message });
+      }
+      return;
+    }
+    sendJson(response, 405, { error: "不支持的请求方法" });
+    return;
+  }
   if (pathname === "/api/china/overview") {
     try {
       sendJson(response, 200, await chinaData.overview());

@@ -24,6 +24,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);
   CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+  CREATE TABLE IF NOT EXISTS user_profile (
+    user_id INTEGER PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS report_usage (
     user_id INTEGER NOT NULL,
     day TEXT NOT NULL,
@@ -203,6 +208,40 @@ function consumeReportQuota(userId, memberLevel) {
   return { ok: true, used: used + 1, limit };
 }
 
+// 用户画像：品类（HS 编码或关键词）、出口市场、关注航线。所有字段都是字符串数组。
+const PROFILE_FIELDS = ["hsCodes", "countries", "routes"];
+
+function sanitizeProfile(input) {
+  const profile = {};
+  for (const field of PROFILE_FIELDS) {
+    const raw = Array.isArray(input?.[field]) ? input[field] : [];
+    profile[field] = raw
+      .map((item) => String(item).trim())
+      .filter(Boolean)
+      .slice(0, 20)
+      .map((item) => item.slice(0, 40));
+  }
+  return profile;
+}
+
+function getProfile(userId) {
+  const row = db.prepare("SELECT data FROM user_profile WHERE user_id = ?").get(userId);
+  if (!row) return null;
+  try {
+    return sanitizeProfile(JSON.parse(row.data));
+  } catch {
+    return null;
+  }
+}
+
+function saveProfile(userId, input) {
+  const profile = sanitizeProfile(input);
+  db.prepare(
+    "INSERT INTO user_profile (user_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
+  ).run(userId, JSON.stringify(profile), new Date().toISOString());
+  return profile;
+}
+
 // 生成失败（API 报错等）时退还本次占用的额度
 function refundReportQuota(userId) {
   const day = new Date().toISOString().slice(0, 10);
@@ -225,6 +264,8 @@ module.exports = {
   setUserStatus,
   consumeReportQuota,
   refundReportQuota,
+  getProfile,
+  saveProfile,
   REPORT_DAILY_LIMITS,
   VALID_MEMBER_LEVELS,
   SESSION_TTL_MS,

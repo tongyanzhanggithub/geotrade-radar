@@ -534,6 +534,7 @@ const state = {
   category: "all",
   query: "",
   highRiskOnly: false,
+  myRadarOnly: false,
   activeTab: "markets",
   watchlist: new Set(["red-sea", "us-battery-tariff", "hormuz"]),
 };
@@ -544,11 +545,26 @@ const scoreColor = (score) => (score >= 80 ? "var(--red)" : score >= 65 ? "var(-
 const markerX = (lon) => ((lon + 180) / 360) * 100;
 const markerY = (lat) => ((90 - lat) / 180) * 100;
 
+// 事件是否命中用户画像（品类关键词 / 出口市场 / 航线），画像由 profile.js 写入 window.geoProfile
+function matchesProfile(event) {
+  const profile = window.geoProfile;
+  if (!profile) return true;
+  const terms = [...(profile.hsCodes || []), ...(profile.countries || []), ...(profile.routes || [])]
+    .map((term) => term.toLowerCase())
+    .filter(Boolean);
+  if (!terms.length) return true;
+  const haystack = [event.title, event.summary, ...event.countries, ...event.sectors, ...event.commodities, event.route]
+    .join(" ")
+    .toLowerCase();
+  return terms.some((term) => haystack.includes(term));
+}
+
 function filteredEvents() {
   const query = state.query.trim().toLowerCase();
   return events.filter((event) => {
     const matchesCategory = state.category === "all" || event.category === state.category;
     const matchesRisk = !state.highRiskOnly || event.score >= 80;
+    if (state.myRadarOnly && !matchesProfile(event)) return false;
     const haystack = [
       event.title,
       event.summary,
