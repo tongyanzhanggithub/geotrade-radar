@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const auth = require("./auth.js");
 const alerts = require("./alerts.js");
+const weekly = require("./weekly.js");
 const chinaData = require("./china-data.js");
 
 const root = __dirname;
@@ -1335,6 +1336,14 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 401, { error: "管理口令不正确" });
       return;
     }
+    if (pathname === "/api/admin/weekly/run" && request.method === "POST") {
+      try {
+        sendJson(response, 200, await weekly.runWeekly(getSnapshot, { dryRun: url.searchParams.get("dryrun") === "1" }));
+      } catch (error) {
+        sendJson(response, 500, { error: error.message });
+      }
+      return;
+    }
     if (pathname === "/api/admin/alerts/run" && request.method === "POST") {
       try {
         sendJson(response, 200, await alerts.runAlertCheck(getSnapshot));
@@ -1413,3 +1422,9 @@ setInterval(() => {
 setInterval(() => {
   alerts.runAlertCheck(getSnapshot).catch((error) => console.warn(`预警检查失败: ${error.message}`));
 }, 15 * 60 * 1000).unref();
+
+// AI 周报：每小时检查，周一早 8 点（UTC+8）后触发；weekly_log 保证每人每周一份
+setInterval(() => {
+  if (!weekly.isMondayMorning()) return;
+  weekly.runWeekly(getSnapshot).catch((error) => console.warn(`周报生成失败: ${error.message}`));
+}, 60 * 60 * 1000).unref();

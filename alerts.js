@@ -204,4 +204,4 @@ async function runAlertCheck(getSnapshotFn, { log = console } = {}) {
   return { subscribers: subscribers.length, sent: totalSent };
 }
 
-module.exports = { runAlertCheck, matchesProfile, collectItems, itemKey };
+module.exports = { runAlertCheck, matchesProfile, collectItems, itemKey, sendWebhook, sendEmail };

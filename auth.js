@@ -35,6 +35,12 @@ db.exec(`
     sent_at TEXT NOT NULL,
     PRIMARY KEY (user_id, item_key)
   );
+  CREATE TABLE IF NOT EXISTS weekly_log (
+    user_id INTEGER NOT NULL,
+    week TEXT NOT NULL,
+    sent_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, week)
+  );
   CREATE TABLE IF NOT EXISTS report_usage (
     user_id INTEGER NOT NULL,
     day TEXT NOT NULL,
@@ -252,6 +258,18 @@ function listAlertSubscribers() {
     .filter(Boolean);
 }
 
+function weeklyAlreadySent(userId, week) {
+  return Boolean(db.prepare("SELECT 1 FROM weekly_log WHERE user_id = ? AND week = ?").get(userId, week));
+}
+
+function markWeeklySent(userId, week) {
+  db.prepare("INSERT OR IGNORE INTO weekly_log (user_id, week, sent_at) VALUES (?, ?, ?)").run(
+    userId,
+    week,
+    new Date().toISOString(),
+  );
+}
+
 function alertAlreadySent(userId, itemKey) {
   return Boolean(db.prepare("SELECT 1 FROM alert_log WHERE user_id = ? AND item_key = ?").get(userId, itemKey));
 }
@@ -310,6 +328,8 @@ module.exports = {
   listAlertSubscribers,
   alertAlreadySent,
   markAlertSent,
+  weeklyAlreadySent,
+  markWeeklySent,
   REPORT_DAILY_LIMITS,
   VALID_MEMBER_LEVELS,
   SESSION_TTL_MS,
