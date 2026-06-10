@@ -1,0 +1,5 @@
+users.db
+users.db-journal
+users.db-wal
+users.db-shm
+node_modules/

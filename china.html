@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="华贸雷达 China Trade Radar - 中国外贸、产业链、区域经济与企业出海机会的智能情报系统"
+    />
+    <title>华贸雷达 · China Trade Radar</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./china.css" />
+  </head>
+  <body class="china">
+    <!-- 会话校验中 -->
+    <div class="cn-guard" id="cn-guard">
+      <div class="cn-guard-mark">华</div>
+      <span>正在校验登录状态…</span>
+    </div>
+
+    <div class="cn-app" id="cn-app" hidden>
+      <header class="cn-topbar">
+        <a class="cn-brand" id="cn-brand" href="#home">
+          <span class="cn-brand-mark">华</span>
+          <span class="cn-brand-name">
+            <strong>华贸雷达</strong>
+            <em>China Trade Radar</em>
+          </span>
+        </a>
+
+        <nav class="cn-nav" id="cn-nav" aria-label="模块导航">
+          <a href="#dashboard" data-nav="dashboard">中国贸易总览</a>
+          <a href="#products" data-nav="products">商品机会</a>
+          <a href="#markets" data-nav="markets">出口市场</a>
+          <a href="#import" data-nav="import">进口依赖</a>
+          <a href="#regions" data-nav="regions">省市产业</a>
+          <a href="#policy" data-nav="policy">政策风险</a>
+          <a href="#reports" data-nav="reports">AI简报</a>
+        </nav>
+
+        <div class="cn-topbar-right">
+          <div class="cn-status" aria-label="中国贸易状态">
+            <span class="cn-chip cn-chip--pulse"><i></i>中国贸易脉搏：平稳</span>
+            <span class="cn-chip cn-chip--risk"><i></i>出口风险：较高</span>
+            <span class="cn-updated">更新 2026-06-08 09:30 北京</span>
+          </div>
+          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
+          <button class="cn-logout" id="cn-logout" type="button">退出</button>
+        </div>
+      </header>
+
+      <main class="cn-main" id="cn-main" aria-live="polite"></main>
+
+      <footer class="cn-footer">
+        <span>华贸雷达 · China Trade Radar</span>
+        <span>演示数据用于展示情报结构 · © 2026</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="cn-toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./china.js"></script>
+  </body>
+</html>

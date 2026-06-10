@@ -1,0 +1,724 @@
+/* ============================================================
+   华贸雷达 China Trade Radar — 深色科技风 · 中国红/金强调
+   依赖 styles.css 的设计变量(:root)
+   ============================================================ */
+body.china {
+  --cn-red: #e5564a;
+  --cn-gold: #f3b44b;
+  --cn-green: #58d5bc;
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--text);
+  background:
+    radial-gradient(1100px 600px at 78% -12%, rgba(229, 86, 74, 0.14), transparent 60%),
+    radial-gradient(800px 460px at 8% 4%, rgba(243, 180, 75, 0.07), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 40px 40px, 40px 40px, auto;
+}
+
+/* ---------- 会话校验 loader ---------- */
+.cn-guard {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--bg);
+}
+.cn-guard[hidden] { display: none; }
+.cn-guard-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(229, 86, 74, 0.6);
+  border-radius: 12px;
+  color: var(--cn-red);
+  font-size: 20px;
+  font-weight: 800;
+  animation: cn-pulse 1.6s ease-in-out infinite;
+}
+@keyframes cn-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.cn-app[hidden] { display: none; }
+
+/* ---------- 顶部导航 ---------- */
+.cn-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 14px clamp(16px, 4vw, 44px);
+  background: rgba(11, 14, 15, 0.78);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line-soft);
+}
+.cn-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.cn-brand-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(229, 86, 74, 0.6);
+  border-radius: 9px;
+  color: var(--cn-red);
+  font-size: 17px;
+  font-weight: 800;
+  background: rgba(229, 86, 74, 0.08);
+}
+.cn-brand-name { display: flex; flex-direction: column; line-height: 1.15; }
+.cn-brand-name strong { font-size: 15px; font-weight: 700; }
+.cn-brand-name em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cn-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cn-nav::-webkit-scrollbar { display: none; }
+.cn-nav a {
+  white-space: nowrap;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: 150ms ease;
+}
+.cn-nav a:hover { color: var(--text); background: var(--surface-2); }
+.cn-nav a.active { color: var(--cn-red); background: rgba(229, 86, 74, 0.1); }
+
+.cn-topbar-right { display: flex; align-items: center; gap: 12px; }
+.cn-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.cn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cn-chip i { width: 7px; height: 7px; border-radius: 50%; }
+.cn-chip--pulse { color: var(--cn-green); }
+.cn-chip--pulse i { background: var(--cn-green); box-shadow: 0 0 0 3px rgba(88, 213, 188, 0.18); }
+.cn-chip--risk { color: var(--cn-gold); }
+.cn-chip--risk i { background: var(--cn-gold); box-shadow: 0 0 0 3px rgba(243, 180, 75, 0.18); animation: cn-pulse 2.2s infinite; }
+.cn-updated { font-size: 10px; color: var(--faint); }
+
+.cn-back,
+.cn-logout {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 150ms ease;
+}
+.cn-back:hover { border-color: var(--cn-red); color: var(--cn-red); }
+.cn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* ---------- 主体容器 ---------- */
+.cn-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 44px) 64px;
+}
+.cn-view-head { margin-bottom: 26px; }
+.cn-view-head h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cn-view-head p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+
+.cn-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 44px);
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* ---------- 首页 Hero ---------- */
+.cn-hero {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(28px, 6vh, 64px) 0;
+  text-align: center;
+}
+.cn-hero-glow {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: -40px;
+  width: min(560px, 90vw);
+  height: 360px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(229, 86, 74, 0.22), transparent 70%);
+  pointer-events: none;
+}
+.cn-hero > * { position: relative; z-index: 1; }
+.cn-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cn-red);
+}
+.cn-hero h1 {
+  margin: 16px 0 0;
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cn-hero-sub {
+  margin: 18px auto 0;
+  max-width: 600px;
+  font-size: clamp(14px, 1.4vw, 17px);
+  line-height: 1.7;
+  color: var(--muted);
+}
+.cn-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px auto 0;
+  max-width: 640px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(16, 21, 22, 0.85);
+  transition: 150ms ease;
+}
+.cn-search:focus-within { border-color: var(--cn-red); box-shadow: 0 0 0 3px rgba(229, 86, 74, 0.15); }
+.cn-search-icon { color: var(--faint); font-size: 18px; }
+.cn-search input { flex: 1; min-width: 0; border: none; background: none; color: var(--text); font-size: 15px; outline: none; }
+.cn-search input::placeholder { color: var(--faint); }
+.cn-search button {
+  flex-shrink: 0;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cn-red);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 150ms ease;
+}
+.cn-search button:hover { filter: brightness(1.08); }
+
+.cn-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+.cn-chip-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(21, 27, 28, 0.6);
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: 150ms ease;
+}
+.cn-chip-btn:hover { border-color: var(--cn-red); color: var(--text); }
+
+.cn-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 26px; }
+.cn-btn { padding: 13px 26px; border-radius: 11px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 150ms ease; }
+.cn-btn--primary { border: none; background: var(--cn-red); color: #fff; }
+.cn-btn--primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.cn-btn--ghost { border: 1px solid var(--line); background: transparent; color: var(--text); }
+.cn-btn--ghost:hover { border-color: var(--cn-red); color: var(--cn-red); }
+
+.cn-pulse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; text-align: left; }
+.cn-pulse-card {
+  position: relative;
+  padding: 18px 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: rgba(16, 21, 22, 0.7);
+  overflow: hidden;
+}
+.cn-pulse-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--muted); }
+.cn-pulse-card--neutral::before { background: var(--cn-green); }
+.cn-pulse-card--risk::before { background: var(--cn-gold); }
+.cn-pulse-card--opp::before { background: var(--cn-red); }
+.cn-pulse-card span { font-size: 11px; letter-spacing: 0.04em; color: var(--muted); }
+.cn-pulse-card strong { display: block; margin: 6px 0 4px; font-size: 22px; font-weight: 700; }
+.cn-pulse-card--risk strong { color: var(--cn-gold); }
+.cn-pulse-card small { font-size: 12px; color: var(--muted); }
+
+/* ---------- 通用面板/网格 ---------- */
+.cn-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.cn-panel {
+  padding: 22px 22px 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(16, 21, 22, 0.6);
+}
+.cn-panel-title { margin: 0 0 16px; font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* KPI */
+.cn-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.cn-kpi { padding: 20px; border: 1px solid var(--line-soft); border-radius: 16px; background: rgba(16, 21, 22, 0.6); }
+.cn-kpi > span { font-size: 12px; color: var(--muted); }
+.cn-kpi strong { display: block; margin: 10px 0 6px; font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; }
+.cn-kpi small { font-size: 12px; color: var(--muted); }
+.cn-kpi--trend { display: flex; flex-direction: column; }
+.cn-spark { width: 100%; height: 48px; margin: 10px 0 6px; }
+.cn-spark polyline { fill: none; stroke: var(--cn-red); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.cn-pos { color: var(--cn-green); font-weight: 700; }
+.cn-neg { color: var(--cn-red); font-weight: 700; }
+
+/* 条形图 */
+.cn-bars { display: flex; flex-direction: column; gap: 11px; }
+.cn-bar-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; font-size: 13px; }
+.cn-bar-label { color: var(--muted); }
+.cn-bar-track { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.cn-bar-track i { display: block; height: 100%; border-radius: 999px; background: var(--cn-red); }
+.cn-bar-val { color: var(--text); font-variant-numeric: tabular-nums; font-size: 12px; }
+
+/* 异常波动 */
+.cn-anomaly { display: flex; flex-direction: column; }
+.cn-anomaly-row {
+  display: grid;
+  grid-template-columns: 110px 64px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.cn-anomaly-row:last-child { border-bottom: none; }
+.cn-anomaly-row strong { font-weight: 600; }
+.cn-anomaly-row span { color: var(--muted); }
+
+/* ---------- 选择器 pill ---------- */
+.cn-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.cn-pill {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: 150ms ease;
+}
+.cn-pill:hover { color: var(--text); border-color: var(--line); }
+.cn-pill.active { background: rgba(229, 86, 74, 0.12); border-color: var(--cn-red); color: var(--cn-red); }
+
+/* ---------- 结果卡片(商品/市场) ---------- */
+.cn-result { border: 1px solid var(--line-soft); border-radius: 18px; background: rgba(16, 21, 22, 0.65); overflow: hidden; }
+.cn-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(11, 14, 15, 0.5);
+}
+.cn-result-tag { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cn-red); }
+.cn-result-head h3 { margin: 6px 0 0; font-size: 22px; font-weight: 700; }
+.cn-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line-soft); }
+.cn-result-grid .cn-field { background: rgba(16, 21, 22, 0.85); padding: 18px 22px; margin: 0; }
+
+.cn-field { margin-top: 16px; }
+.cn-field > span { display: block; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.cn-note { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--text); }
+.cn-hint { margin: 14px 0 0; font-size: 12.5px; color: var(--faint); }
+.cn-bignum { font-size: 28px; font-weight: 700; color: var(--cn-red); }
+
+.cn-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.cn-tags span {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* 环形评分 */
+.cn-ring {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring) calc(var(--p) * 1%), var(--line-soft) 0);
+  display: grid;
+  place-items: center;
+}
+.cn-ring-core {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.cn-ring-core strong { font-size: 20px; font-weight: 700; line-height: 1; }
+.cn-ring-core span { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+/* 风险标签 */
+.cn-risk { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.cn-risk--high { color: var(--cn-red); background: rgba(229, 86, 74, 0.14); }
+.cn-risk--mid { color: var(--cn-gold); background: rgba(243, 180, 75, 0.14); }
+.cn-risk--low { color: var(--cn-green); background: rgba(88, 213, 188, 0.14); }
+
+/* ---------- 进口依赖 ---------- */
+.cn-dep { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cn-dep-card { padding: 22px; border: 1px solid var(--line-soft); border-radius: 16px; background: rgba(16, 21, 22, 0.6); }
+.cn-dep-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cn-dep-head h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.cn-dep-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 18px; margin: 16px 0; }
+.cn-dep-grid .cn-field { margin: 0; }
+.cn-dep-grid .cn-field > span { margin-bottom: 6px; }
+.cn-dep-foot { padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.cn-dep-foot span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--cn-gold); }
+.cn-dep-foot p { margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: var(--text); }
+
+/* ---------- 省市产业 ---------- */
+.cn-map-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.cn-metric { padding: 16px 18px; border: 1px solid var(--line-soft); border-radius: 14px; background: rgba(16, 21, 22, 0.6); }
+.cn-metric span { font-size: 11px; color: var(--muted); }
+.cn-metric strong { display: block; margin: 6px 0 4px; font-size: 20px; font-weight: 700; color: var(--cn-red); }
+.cn-metric small { font-size: 11.5px; color: var(--muted); }
+
+.cn-map-stage {
+  position: relative;
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(700px 400px at 60% 0%, rgba(229, 86, 74, 0.08), transparent 60%),
+    var(--surface);
+}
+#cn-map { width: 100%; height: clamp(380px, 56vh, 560px); background: transparent; }
+.leaflet-container { background: transparent !important; font: inherit; outline: none; }
+.leaflet-container a { color: var(--cn-red); }
+.cn-map-stage .leaflet-control-attribution {
+  background: rgba(11, 14, 15, 0.7);
+  color: var(--faint);
+  font-size: 10px;
+}
+.cn-map-stage .leaflet-bar a {
+  background: rgba(16, 21, 22, 0.92);
+  color: var(--text);
+  border-bottom-color: var(--line-soft);
+}
+.cn-map-stage .leaflet-bar a:hover { background: var(--surface-3); }
+.leaflet-interactive { transition: fill-opacity 120ms ease; cursor: pointer; }
+
+.cn-map-legend {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgba(11, 14, 15, 0.82);
+  backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.cn-legend-title { color: var(--text); font-weight: 600; margin-right: 4px; }
+.cn-map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cn-map-legend i { width: 11px; height: 11px; border-radius: 3px; }
+
+.cn-map-focus {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 500;
+  min-width: 150px;
+  max-width: 220px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(11, 14, 15, 0.88);
+  backdrop-filter: blur(8px);
+}
+.cn-map-focus[hidden] { display: none; }
+.cn-map-focus strong { display: block; font-size: 17px; font-weight: 700; }
+.cn-map-focus > span { font-size: 12px; color: var(--cn-gold); }
+.cn-focus-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.cn-focus-tags b { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-soft); font-size: 11px; font-weight: 500; color: var(--text); }
+
+.cn-region-wrap { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
+
+/* ---------- 终端三栏(中国贸易总览) ---------- */
+.cn-terminal { display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 16px; align-items: start; margin-bottom: 16px; }
+.cn-rail { display: flex; flex-direction: column; gap: 16px; }
+.cn-map-stage--terminal #cn-map { height: clamp(440px, 62vh, 640px); }
+
+.cn-mini-kpis { display: flex; flex-direction: column; gap: 12px; }
+.cn-mini-kpi span { font-size: 11px; color: var(--muted); }
+.cn-mini-kpi strong { display: block; margin-top: 2px; font-size: 19px; font-weight: 700; }
+.cn-mini-kpi small { font-size: 11px; color: var(--muted); }
+.cn-spark-note { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.cn-panel .cn-spark { margin: 14px 0 0; height: 42px; }
+
+.cn-signals { display: flex; flex-direction: column; }
+.cn-signal-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+.cn-signal-row:last-child { border-bottom: none; }
+.cn-signal-row > span { font-size: 13px; color: var(--muted); align-self: center; }
+.cn-signal-row strong { font-size: 18px; font-weight: 700; align-self: center; }
+.cn-signal-row b { grid-column: 1 / -1; font-size: 11px; font-weight: 600; }
+.cn-mid { color: var(--cn-gold); }
+
+.cn-anomaly--compact .cn-anomaly-row { grid-template-columns: 1fr auto auto; gap: 10px; padding: 11px 0; }
+
+.cn-hotspots { display: flex; flex-direction: column; gap: 8px; }
+.cn-hotspot-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: 150ms ease;
+}
+.cn-hotspot-row:hover { border-color: var(--line); transform: translateX(2px); }
+.cn-hotspot-row > i { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.cn-hotspot-row--opp > i { background: var(--cn-green); box-shadow: 0 0 0 3px rgba(88, 213, 188, 0.18); }
+.cn-hotspot-row--risk > i { background: var(--cn-red); box-shadow: 0 0 0 3px rgba(229, 86, 74, 0.18); }
+.cn-hotspot-row span { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.cn-hotspot-row b { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* 图例：热点圆点 */
+.cn-legend-sep { width: 1px; height: 14px; background: var(--line); }
+.cn-map-legend i.cn-dot { border-radius: 50%; }
+.cn-dot--opp { background: var(--cn-green); }
+.cn-dot--risk { background: var(--cn-red); }
+
+/* 地图 markers(机会/风险脉冲点) */
+.cn-marker { background: transparent; border: none; }
+.cn-marker--opp { color: var(--cn-green); }
+.cn-marker--risk { color: var(--cn-red); }
+.cn-marker i { position: relative; display: block; width: 11px; height: 11px; border-radius: 50%; background: currentColor; }
+.cn-marker i::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0.55;
+  animation: cn-ping 2.4s ease-out infinite;
+}
+@keyframes cn-ping { 0% { transform: scale(0.55); opacity: 0.7; } 80%, 100% { transform: scale(1.7); opacity: 0; } }
+
+/* Leaflet tooltip 暗色化 */
+.leaflet-tooltip.cn-marker-tip {
+  background: rgba(11, 14, 15, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.leaflet-tooltip.cn-marker-tip b { display: block; font-size: 13px; }
+.cn-marker-tip span { color: var(--muted); font-size: 11px; }
+.leaflet-tooltip.cn-marker-tip::before { border-top-color: var(--line); }
+.leaflet-tooltip.cn-prov-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: rgba(237, 242, 239, 0.6);
+  font-size: 10px;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+.leaflet-tooltip.cn-prov-label--key { color: #fff; font-size: 11px; font-weight: 700; }
+
+@media (max-width: 1080px) {
+  .cn-terminal { grid-template-columns: 1fr; }
+  .cn-map-stage--terminal { order: -1; }
+}
+.cn-heatgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.cn-province {
+  position: relative;
+  padding: 18px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: 150ms ease;
+}
+.cn-province::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cn-red);
+  opacity: var(--heat, 0.2);
+}
+.cn-province > * { position: relative; z-index: 1; }
+.cn-province strong { display: block; font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }
+.cn-province span { font-size: 11.5px; color: rgba(255, 255, 255, 0.82); }
+.cn-province:hover { transform: translateY(-2px); }
+.cn-province.active { border-color: #fff; box-shadow: 0 0 0 1px #fff inset; }
+
+.cn-region-detail { padding: 24px; border: 1px solid var(--line-soft); border-radius: 18px; background: rgba(16, 21, 22, 0.65); }
+.cn-region-detail h3 { margin: 6px 0 0; font-size: 20px; font-weight: 700; }
+.cn-pillars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0; }
+.cn-pillar { padding: 14px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2); }
+.cn-pillar strong { display: block; font-size: 14px; color: var(--cn-red); margin-bottom: 4px; }
+.cn-pillar span { font-size: 12px; line-height: 1.5; color: var(--muted); }
+.cn-region-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+
+/* ---------- 政策风险 ---------- */
+.cn-policy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cn-policy-card {
+  position: relative;
+  padding: 22px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(16, 21, 22, 0.6);
+}
+.cn-policy-card::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 3px; border-radius: 2px; }
+.cn-policy--high::before { background: var(--cn-red); }
+.cn-policy--mid::before { background: var(--cn-gold); }
+.cn-policy--low::before { background: var(--cn-green); }
+.cn-policy-card header { display: flex; align-items: center; justify-content: space-between; }
+.cn-policy-type { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.cn-policy-card h3 { margin: 12px 0 14px; font-size: 16px; font-weight: 700; line-height: 1.4; }
+.cn-policy-meta { display: grid; gap: 8px; margin-bottom: 14px; }
+.cn-policy-meta div { display: flex; gap: 10px; font-size: 12.5px; }
+.cn-policy-meta span { color: var(--muted); min-width: 56px; }
+.cn-policy-meta b { color: var(--text); font-weight: 600; }
+.cn-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cn-chain span {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--text);
+}
+.cn-chain b { color: var(--cn-red); font-weight: 700; }
+
+/* ---------- AI 简报 ---------- */
+.cn-report-input { display: flex; gap: 10px; margin-bottom: 16px; }
+.cn-report-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(16, 21, 22, 0.85);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.cn-report-input input:focus { border-color: var(--cn-red); }
+.cn-report { border: 1px solid var(--line-soft); border-radius: 18px; background: rgba(16, 21, 22, 0.65); overflow: hidden; }
+.cn-report-head { padding: 22px 24px; border-bottom: 1px solid var(--line-soft); background: rgba(11, 14, 15, 0.5); }
+.cn-report-head h3 { margin: 6px 0 0; font-size: 20px; font-weight: 700; }
+.cn-report-block { padding: 20px 24px; }
+.cn-report-block h4 { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.cn-report-block p { margin: 0; font-size: 14.5px; line-height: 1.7; color: var(--text); }
+.cn-report > .cn-report-block { border-bottom: 1px solid var(--line-soft); }
+.cn-report .cn-grid-2 { margin: 0; gap: 1px; background: var(--line-soft); }
+.cn-report .cn-grid-2 .cn-report-block { background: rgba(16, 21, 22, 0.85); }
+.cn-report-block--win h4 { color: var(--cn-green); }
+.cn-report-block--loss h4 { color: var(--cn-red); }
+.cn-report-block--watch h4 { color: var(--cn-gold); }
+.cn-list { margin: 0; padding-left: 18px; }
+.cn-list li { font-size: 13.5px; line-height: 1.7; color: var(--text); }
+
+/* ---------- Toast ---------- */
+#cn-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  padding: 12px 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(16, 21, 22, 0.96);
+  color: var(--text);
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 220ms ease;
+  z-index: 90;
+}
+#cn-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1080px) {
+  .cn-status { display: none; }
+}
+@media (max-width: 900px) {
+  .cn-kpis { grid-template-columns: repeat(2, 1fr); }
+  .cn-grid-2,
+  .cn-dep,
+  .cn-policy { grid-template-columns: 1fr; }
+  .cn-region-wrap { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .cn-result-grid { grid-template-columns: 1fr; }
+  .cn-kpis { grid-template-columns: 1fr; }
+  .cn-map-metrics { grid-template-columns: repeat(2, 1fr); }
+  .cn-heatgrid,
+  .cn-pillars,
+  .cn-region-cols,
+  .cn-dep-grid { grid-template-columns: 1fr; }
+  .cn-anomaly-row { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .cn-anomaly-row span { grid-column: 1 / -1; }
+  .cn-nav { gap: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cn-guard-mark,
+  .cn-chip--risk i { animation: none; }
+}
