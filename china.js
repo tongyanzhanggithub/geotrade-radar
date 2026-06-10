@@ -535,6 +535,7 @@
     return `
     ${viewHead("中国贸易总览", "进出口态势、省市热力、实时信号与异常波动")}
     ${sourceBadge(liveData.overview, "总额与商品/市场为实时；信号、异常、热点为参考演示")}
+    ${customsSection()}
     <div class="cn-terminal">
       <aside class="cn-rail">
         <section class="cn-panel">
@@ -680,6 +681,25 @@
         ${field("适合中国企业进入的细分品类", tagList(m.niches))}
         ${field("关税与政策风险", `${riskTag(m.barrierLevel)}<p class="cn-note">${esc(m.barrier)}</p>`)}
       </div>
+    </div>
+    ${riskSection()}`;
+  }
+
+  // 信保国别风险评级区块（data/sinosure-risk.json 配置后显示）
+  function riskSection() {
+    const data = liveData.countryRisk;
+    if (!data || !data.configured) return "";
+    return `
+    <h3 class="cn-section-sub">国别风险评级（${esc(data.edition || "最新版")}）</h3>
+    <div class="cn-source cn-source--live"><i></i>数据来源：${esc(data.source)} · 评级 ${esc(data.scale)}</div>
+    <div class="cn-map-metrics">
+      ${data.countries
+        .slice(0, 12)
+        .map(
+          (c) =>
+            `<div class="cn-mini-kpi"><span>${esc(c.name)}${c.trend && c.trend !== "稳定" ? " · " + esc(c.trend) : ""}</span><strong>${esc(String(c.rating))} 级</strong><small>${esc(c.note || (c.rating <= 3 ? "风险较低" : c.rating <= 6 ? "风险中等" : "风险较高"))}</small></div>`
+        )
+        .join("")}
     </div>`;
   }
 
@@ -994,7 +1014,8 @@
         </article>`
         )
         .join("")}
-    </div>`;
+    </div>
+    ${mofcomSection()}`;
   }
   function viewPolicyDemo() {
     return `
@@ -1018,7 +1039,8 @@
           <div class="cn-field"><span>建议观察点</span>${tagList(e.watch)}</div>
         </article>`
       ).join("")}
-    </div>`;
+    </div>
+    ${mofcomSection()}`;
   }
 
   function viewReports() {
@@ -1290,6 +1312,7 @@
       });
   }
   function ensurePolicy() {
+    ensureMofcom();
     if (liveData.policy || liveData.policyLoading || liveData.policyFailed) return;
     liveData.policyLoading = true;
     fetch("/api/china/trade-remedies")
@@ -1304,6 +1327,89 @@
         liveData.policyLoading = false;
         if (state.view === "policy") render();
       });
+  }
+  // 海关总署月度数据区块（data/customs-monthly.json 配置后显示在总览顶部）
+  function customsSection() {
+    const data = liveData.customs;
+    if (!data || !data.configured) return "";
+    return `
+    <div class="cn-map-metrics">
+      ${data.entries
+        .slice(0, 4)
+        .map(
+          (e) =>
+            `<div class="cn-mini-kpi"><span>${esc(e.period)} 出口</span><strong>${esc(String(e.exports))} ${esc(data.unit)}</strong><small>同比 ${esc(e.exportsYoy || "—")} · 进口 ${esc(String(e.imports))}（${esc(e.importsYoy || "—")}）</small></div>`
+        )
+        .join("")}
+    </div>
+    <div class="cn-source cn-source--live"><i></i>数据来源：${esc(data.source)}${data.updatedAt ? " · 更新于 " + esc(data.updatedAt) : ""}</div>`;
+  }
+  function ensureCustoms() {
+    if (liveData.customs || liveData.customsLoading) return;
+    liveData.customsLoading = true;
+    fetch("/api/china/customs-monthly")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        liveData.customs = d;
+        if (d.configured && state.view === "dashboard") render();
+      })
+      .catch(() => {})
+      .finally(() => {
+        liveData.customsLoading = false;
+      });
+  }
+  function ensureCountryRisk() {
+    if (liveData.countryRisk || liveData.countryRiskLoading) return;
+    liveData.countryRiskLoading = true;
+    fetch("/api/china/country-risk")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        liveData.countryRisk = d;
+        if (d.configured && state.view === "markets") render();
+      })
+      .catch(() => {})
+      .finally(() => {
+        liveData.countryRiskLoading = false;
+      });
+  }
+  function ensureMofcom() {
+    if (liveData.mofcom || liveData.mofcomLoading || liveData.mofcomFailed) return;
+    liveData.mofcomLoading = true;
+    fetch("/api/china/mofcom")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        liveData.mofcom = d;
+      })
+      .catch(() => {
+        liveData.mofcomFailed = true;
+      })
+      .finally(() => {
+        liveData.mofcomLoading = false;
+        if (state.view === "policy") render();
+      });
+  }
+  // 商务部公告区块（接在政策视图底部）
+  function mofcomSection() {
+    const data = liveData.mofcom;
+    if (!data || !data.announcements || !data.announcements.length) return "";
+    return `
+    <h3 class="cn-section-sub">商务部贸易救济公告（中国发起 · 官方原文）</h3>
+    <div class="cn-source cn-source--live"><i></i>数据来源：${esc(data.source)}</div>
+    <div class="cn-policy">
+      ${data.announcements
+        .slice(0, 10)
+        .map(
+          (item) => `
+        <article class="cn-policy-card cn-policy--${item.type.includes("反倾销") ? "high" : "mid"}">
+          <header>
+            <span class="cn-policy-type">${esc(item.type)}</span>
+            <span class="cn-risk cn-risk--mid">${esc(item.date)}</span>
+          </header>
+          <h3><a href="${esc(item.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(item.title)}</a></h3>
+        </article>`
+        )
+        .join("")}
+    </div>`;
   }
   function sourceBadge(live, note) {
     if (live && (live.period != null || live.source)) {
@@ -1336,8 +1442,10 @@
     if (state.view === "regions") ensureRegions();
     if (state.view === "regions" || state.view === "dashboard") mountChinaMap();
     if (state.view === "dashboard") ensureOverview();
+    if (state.view === "dashboard") ensureCustoms();
     if (state.view === "products") ensureProduct(state.product);
     if (state.view === "markets") ensureMarket(state.market);
+    if (state.view === "markets") ensureCountryRisk();
     if (state.view === "import") ensureDependency();
     if (state.view === "policy") ensurePolicy();
   }

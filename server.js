@@ -1273,6 +1273,30 @@ const server = http.createServer(async (request, response) => {
     }
     return;
   }
+  if (pathname === "/api/china/mofcom") {
+    try {
+      sendJson(response, 200, await chinaData.mofcomAnnouncements());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/customs-monthly") {
+    try {
+      sendJson(response, 200, await chinaData.customsMonthly());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/china/country-risk") {
+    try {
+      sendJson(response, 200, await chinaData.countryRisk());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
   if (pathname === "/api/china/trade-remedies") {
     try {
       sendJson(response, 200, await chinaData.tradeRemedies());

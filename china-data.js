@@ -611,4 +611,84 @@ async function generateReport(query) {
   });
 }
 
-module.exports = { overview, product, market, dependency, tradeRemedies, regions, generateReport };
+// =====================================================================
+// 本土数据源：商务部贸易救济公告(实时抓取) / 海关月度数据 / 信保国别风险
+// 后两者来自 data/ 目录下的结构化数据文件（官网有反爬或仅发布年报，
+// 由运营者按 data/README.md 的说明定期从官方发布页更新，代码不编造数字）。
+// =====================================================================
+
+// 中国贸易救济信息网（商务部贸易救济调查局主办）首页公告列表
+// 结构：<li class="clearfix"><i>日期</i><em>类型</em><a href="...">标题</a></li>
+async function mofcomAnnouncements() {
+  return cached("mofcom-announcements", async () => {
+    const response = await fetch("https://cacs.mofcom.gov.cn/", {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "zh-CN" },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`cacs.mofcom.gov.cn ${response.status}`);
+    const html = await response.text();
+    const pattern = /<li class="clearfix">\s*<i>(20\d{2}-\d{2}-\d{2})<\/i><em>\s*([^<]+?)\s*<\/em><a href="(\/cacscms\/article\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    const seen = new Set();
+    const items = [];
+    for (const match of html.matchAll(pattern)) {
+      const url = "https://cacs.mofcom.gov.cn" + match[3].replace(/&amp;/g, "&");
+      if (seen.has(url)) continue;
+      seen.add(url);
+      items.push({
+        date: match[1],
+        type: match[2].trim(),
+        title: match[4].replace(/&hellip;/g, "…").replace(/\s+/g, " ").trim(),
+        url,
+      });
+    }
+    items.sort((a, b) => (a.date < b.date ? 1 : -1));
+    return {
+      source: "中国贸易救济信息网（商务部）",
+      sourceUrl: "https://cacs.mofcom.gov.cn/",
+      fetchedAt: new Date().toISOString(),
+      announcements: items.slice(0, 20),
+    };
+  });
+}
+
+function readDataFile(name) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "data", name), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+// 海关总署月度进出口数据（data/customs-monthly.json，运营者每月更新）
+async function customsMonthly() {
+  const file = readDataFile("customs-monthly.json");
+  if (!file || !Array.isArray(file.entries) || !file.entries.length) {
+    return { configured: false, note: "尚未配置海关月度数据，请按 data/README.md 从海关总署官网更新" };
+  }
+  return {
+    configured: true,
+    source: file.source || "中国海关总署",
+    sourceUrl: file.sourceUrl || "http://www.customs.gov.cn/",
+    unit: file.unit || "亿元人民币",
+    updatedAt: file.updatedAt || null,
+    entries: file.entries,
+  };
+}
+
+// 中国信保国别风险评级（data/sinosure-risk.json，运营者按年度报告更新）
+async function countryRisk() {
+  const file = readDataFile("sinosure-risk.json");
+  if (!file || !Array.isArray(file.countries) || !file.countries.length) {
+    return { configured: false, note: "尚未配置国别风险数据，请按 data/README.md 从中国信保年度报告更新" };
+  }
+  return {
+    configured: true,
+    source: file.source || "中国出口信用保险公司《国家风险分析报告》",
+    sourceUrl: file.sourceUrl || "https://www.sinosure.com.cn/",
+    edition: file.edition || null,
+    scale: file.scale || "1（风险最低）— 9（风险最高）",
+    countries: file.countries,
+  };
+}
+
+module.exports = { overview, product, market, dependency, tradeRemedies, regions, generateReport, mofcomAnnouncements, customsMonthly, countryRisk };
