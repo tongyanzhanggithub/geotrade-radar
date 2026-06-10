@@ -108,6 +108,11 @@
       });
       const data = await response.json();
       if (!response.ok) {
+        if (response.status === 403) {
+          errorBox.hidden = false;
+          errorBox.innerHTML = `${data.error || "会员专属功能"} <a href="./pricing.html" style="color:var(--teal,#4cd9b0)">查看订阅方案 →</a>`;
+          return;
+        }
         showError(data.error || "保存失败，请稍后再试");
         return;
       }

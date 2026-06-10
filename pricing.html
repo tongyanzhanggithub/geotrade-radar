@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>订阅方案 · GeoTrade Radar 寰贸雷达</title>
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --card: #121a23;
+        --line: #1f2b38;
+        --text: #dbe7f3;
+        --muted: #8aa0b5;
+        --teal: #4cd9b0;
+        --gold: #e8c069;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Microsoft YaHei", system-ui, sans-serif;
+        min-height: 100vh;
+        padding: 40px 16px 72px;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; }
+      h1 { font-size: 30px; text-align: center; }
+      .sub { text-align: center; color: var(--muted); margin: 10px 0 36px; }
+      .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+      .tier {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 26px 24px;
+        display: flex;
+        flex-direction: column;
+      }
+      .tier.hot { border-color: var(--teal); position: relative; }
+      .tier.hot::before {
+        content: "最受欢迎";
+        position: absolute; top: -12px; left: 24px;
+        background: var(--teal); color: #06231b;
+        font-size: 12px; font-weight: 700;
+        padding: 3px 10px; border-radius: 999px;
+      }
+      .tier h2 { font-size: 20px; }
+      .price { font-size: 32px; font-weight: 800; margin: 14px 0 2px; }
+      .price small { font-size: 14px; color: var(--muted); font-weight: 400; }
+      .per { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+      .tier ul { list-style: none; padding: 0; flex: 1; }
+      .tier li { padding: 7px 0 7px 26px; position: relative; font-size: 14.5px; line-height: 1.5; }
+      .tier li::before { content: "✓"; position: absolute; left: 4px; color: var(--teal); font-weight: 700; }
+      .tier li.no { color: var(--muted); }
+      .tier li.no::before { content: "—"; color: var(--muted); }
+      .buy {
+        margin-top: 20px; padding: 12px;
+        border-radius: 10px; border: none; cursor: pointer;
+        font-size: 15px; font-weight: 700;
+        background: var(--teal); color: #06231b;
+      }
+      .buy.ghost { background: transparent; color: var(--teal); border: 1px solid var(--teal); }
+      .howto {
+        margin-top: 44px; background: var(--card);
+        border: 1px solid var(--line); border-radius: 14px; padding: 28px 26px;
+      }
+      .howto h3 { margin-bottom: 14px; }
+      .howto ol { padding-left: 20px; color: var(--muted); line-height: 2; }
+      .howto b { color: var(--text); }
+      .qr {
+        width: 180px; height: 180px; border-radius: 10px;
+        background: #0e141b; border: 1px dashed var(--line);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-size: 13px; text-align: center;
+        margin: 16px 0;
+      }
+      .qr img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+      .back { display: block; text-align: center; margin-top: 34px; color: var(--muted); }
+      .back a { color: var(--teal); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>订阅方案</h1>
+      <p class="sub">免费看全球大盘，会员看"与我有关"——画像过滤、微信/邮件预警、AI 专属周报</p>
+
+      <div class="tiers">
+        <div class="tier">
+          <h2>免费版</h2>
+          <div class="price">¥0</div>
+          <div class="per">永久免费</div>
+          <ul>
+            <li>全球风险地图与实时事件流</li>
+            <li>市场行情 / OFAC 制裁追踪</li>
+            <li>中国贸易总览与政策雷达</li>
+            <li class="no">个性化"我的雷达"画像过滤</li>
+            <li class="no">微信 / 邮件风险预警推送</li>
+            <li class="no">AI 简报与每周专属周报</li>
+          </ul>
+          <button class="buy ghost" onclick="location.href='./index.html'">直接使用</button>
+        </div>
+
+        <div class="tier hot">
+          <h2>会员</h2>
+          <div class="price">¥39 <small>/ 月</small></div>
+          <div class="per">年付 ¥365（约 76 折）</div>
+          <ul>
+            <li>免费版全部功能</li>
+            <li><b>个性化"我的雷达"</b>：按你的品类 / 市场 / 航线过滤</li>
+            <li><b>预警推送</b>：你的品类被立案、航线异动，微信 / 邮件直达</li>
+            <li><b>AI 周报</b>：每周一收到基于你画像的专属分析</li>
+            <li>AI 简报每日 5 次</li>
+          </ul>
+          <button class="buy" onclick="document.getElementById('howto').scrollIntoView({behavior:'smooth'})">开通会员</button>
+        </div>
+
+        <div class="tier">
+          <h2>高级会员 Pro</h2>
+          <div class="price">¥99 <small>/ 月</small></div>
+          <div class="per">年付 ¥999</div>
+          <ul>
+            <li>会员全部功能</li>
+            <li>AI 简报每日 20 次</li>
+            <li>优先接入新数据源与新功能</li>
+            <li>一对一画像配置协助</li>
+          </ul>
+          <button class="buy ghost" onclick="document.getElementById('howto').scrollIntoView({behavior:'smooth'})">开通 Pro</button>
+        </div>
+      </div>
+
+      <div class="howto" id="howto">
+        <h3>如何开通</h3>
+        <ol>
+          <li>微信扫描下方收款码付款（备注你的<b>注册邮箱</b>）</li>
+          <li>付款后将<b>付款截图 + 注册邮箱</b>发到：<b>（这里填你的微信号或邮箱）</b></li>
+          <li>我们会在 <b>24 小时内</b>为你开通，开通后刷新页面即可使用全部会员功能</li>
+        </ol>
+        <div class="qr" id="qr-box">收款码图片<br />（把 pay-qr.png 放到网站根目录即自动显示）</div>
+      </div>
+
+      <p class="back"><a href="./index.html">← 返回 GeoTrade Radar</a></p>
+    </div>
+
+    <script>
+      // 根目录存在 pay-qr.png 时自动展示收款码
+      const img = new Image();
+      img.onload = () => {
+        const box = document.getElementById("qr-box");
+        box.textContent = "";
+        box.appendChild(img);
+      };
+      img.src = "./pay-qr.png";
+    </script>
+  </body>
+</html>

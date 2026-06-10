@@ -330,10 +330,57 @@
           }
         });
 
+        // 一键开通/续费：按当前下拉框等级顺延 N 个月（未到期则在原到期日上加）
+        const grantButton = document.createElement("button");
+        grantButton.textContent = "+1月";
+        grantButton.className = "secondary";
+        grantButton.title = "按左侧选中的等级开通/续费 1 个月（输入框可改月数）";
+        const monthsInput = document.createElement("input");
+        monthsInput.type = "number";
+        monthsInput.min = "1";
+        monthsInput.max = "36";
+        monthsInput.value = "1";
+        monthsInput.style.width = "3.5em";
+        monthsInput.addEventListener("input", () => {
+          grantButton.textContent = `+${monthsInput.value || 1}月`;
+        });
+        grantButton.addEventListener("click", async () => {
+          const level = select.value === "free" ? "member" : select.value;
+          grantButton.disabled = true;
+          try {
+            const result = await adminFetch(`/api/admin/users/${user.id}/grant`, {
+              method: "POST",
+              body: JSON.stringify({ level, months: Number(monthsInput.value || 1) }),
+            });
+            setStatus(`用户 #${user.id} 已开通 ${levelLabels[level]} 至 ${result.user.memberExpiresAt.slice(0, 10)}`, false);
+            loadPage(currentPage);
+          } catch (error) {
+            setStatus(error.message, true);
+            grantButton.disabled = false;
+          }
+        });
+
+        const resetButton = document.createElement("button");
+        resetButton.textContent = "重置密码";
+        resetButton.className = "secondary";
+        resetButton.addEventListener("click", async () => {
+          if (!confirm(`确定重置用户 #${user.id}（${user.email}）的密码吗？其所有登录会话将被踢下线。`)) return;
+          resetButton.disabled = true;
+          try {
+            const result = await adminFetch(`/api/admin/users/${user.id}/reset-password`, { method: "POST" });
+            prompt(`用户 #${user.id} 的临时密码（请复制后人工发给用户，本窗口关闭后不再显示）：`, result.tempPassword);
+            setStatus(`用户 #${user.id} 密码已重置`, false);
+          } catch (error) {
+            setStatus(error.message, true);
+          } finally {
+            resetButton.disabled = false;
+          }
+        });
+
         const actionCell = document.createElement("td");
         const actionWrap = document.createElement("div");
         actionWrap.className = "row-actions";
-        actionWrap.append(select, expiresInput, saveButton, toggleButton);
+        actionWrap.append(select, expiresInput, saveButton, monthsInput, grantButton, resetButton, toggleButton);
         actionCell.appendChild(actionWrap);
 
         const statusCell = document.createElement("td");

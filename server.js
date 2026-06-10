@@ -1415,6 +1415,27 @@ const server = http.createServer(async (request, response) => {
       }
       return;
     }
+    const grantMatch = pathname.match(/^\/api\/admin\/users\/(\d+)\/grant$/);
+    if (grantMatch && request.method === "POST") {
+      try {
+        const body = await readJsonBody(request);
+        const user = auth.grantMembership(Number(grantMatch[1]), body.level, body.months);
+        sendJson(response, 200, { user });
+      } catch (error) {
+        sendJson(response, 400, { error: error.message });
+      }
+      return;
+    }
+    const resetMatch = pathname.match(/^\/api\/admin\/users\/(\d+)\/reset-password$/);
+    if (resetMatch && request.method === "POST") {
+      try {
+        const tempPassword = auth.adminResetPassword(Number(resetMatch[1]));
+        sendJson(response, 200, { tempPassword });
+      } catch (error) {
+        sendJson(response, 400, { error: error.message });
+      }
+      return;
+    }
     const statusMatch = pathname.match(/^\/api\/admin\/users\/(\d+)\/status$/);
     if (statusMatch && request.method === "POST") {
       try {

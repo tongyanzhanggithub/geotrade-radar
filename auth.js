@@ -94,8 +94,9 @@ function register(email, password) {
 }
 
 function login(email, password) {
-  const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+  let row = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
   if (!row) throw new Error("邮箱或密码错误");
+  row = downgradeIfExpired(row);
 
   const candidateHash = hashPassword(password, row.salt);
   const expected = Buffer.from(row.password_hash, "hex");
@@ -120,6 +121,20 @@ function createSession(userId) {
   return { token, user: publicUser(db.prepare("SELECT * FROM users WHERE id = ?").get(userId)) };
 }
 
+// 会员到期 → 自动降级为 free（单个用户即时检查；expireMembers 做全表扫）
+function downgradeIfExpired(row) {
+  if (!row || row.member_level === "free" || !row.member_expires_at) return row;
+  if (new Date(row.member_expires_at).getTime() >= Date.now()) return row;
+  db.prepare("UPDATE users SET member_level = 'free', member_expires_at = NULL WHERE id = ?").run(row.id);
+  return db.prepare("SELECT * FROM users WHERE id = ?").get(row.id);
+}
+
+function expireMembers() {
+  db.prepare(
+    "UPDATE users SET member_level = 'free', member_expires_at = NULL WHERE member_level != 'free' AND member_expires_at IS NOT NULL AND member_expires_at < ?",
+  ).run(new Date().toISOString());
+}
+
 function userFromToken(token) {
   if (!token) return null;
   const session = db.prepare("SELECT * FROM sessions WHERE token = ?").get(token);
@@ -128,8 +143,9 @@ function userFromToken(token) {
     db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
     return null;
   }
-  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(session.user_id);
+  let row = db.prepare("SELECT * FROM users WHERE id = ?").get(session.user_id);
   if (!row) return null;
+  row = downgradeIfExpired(row);
   if (row.status === "disabled") {
     db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
     return null;
@@ -194,6 +210,36 @@ function setMemberLevel(userId, level, expiresAt) {
   return publicUser(db.prepare("SELECT * FROM users WHERE id = ?").get(userId));
 }
 
+// 管理员重置密码：生成临时密码并踢掉所有会话，返回明文给管理员人工转交用户
+function adminResetPassword(userId) {
+  const row = db.prepare("SELECT id FROM users WHERE id = ?").get(userId);
+  if (!row) throw new Error("用户不存在");
+  const tempPassword = crypto.randomBytes(6).toString("base64url"); // 8 位
+  const salt = crypto.randomBytes(16).toString("hex");
+  db.prepare("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?").run(
+    hashPassword(tempPassword, salt),
+    salt,
+    userId,
+  );
+  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  return tempPassword;
+}
+
+// 开通/续费会员 N 个月：未到期则在原到期日上顺延
+function grantMembership(userId, level, months) {
+  if (!VALID_MEMBER_LEVELS.includes(level) || level === "free") throw new Error("无效的会员等级");
+  const monthCount = Number(months);
+  if (!Number.isInteger(monthCount) || monthCount < 1 || monthCount > 36) throw new Error("月数需为 1-36 的整数");
+  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+  if (!row) throw new Error("用户不存在");
+  const base =
+    row.member_level !== "free" && row.member_expires_at && new Date(row.member_expires_at).getTime() > Date.now()
+      ? new Date(row.member_expires_at)
+      : new Date();
+  base.setMonth(base.getMonth() + monthCount);
+  return setMemberLevel(userId, level, base.toISOString());
+}
+
 function setUserStatus(userId, status) {
   if (!["active", "disabled"].includes(status)) throw new Error("无效的账号状态");
   const row = db.prepare("SELECT id FROM users WHERE id = ?").get(userId);
@@ -244,9 +290,9 @@ function sanitizeProfile(input) {
 function listAlertSubscribers() {
   const rows = db
     .prepare(
-      "SELECT u.id, u.email, u.member_level, p.data FROM users u JOIN user_profile p ON p.user_id = u.id WHERE u.status = 'active' AND u.member_level != 'free'",
+      "SELECT u.id, u.email, u.member_level, p.data FROM users u JOIN user_profile p ON p.user_id = u.id WHERE u.status = 'active' AND u.member_level != 'free' AND (u.member_expires_at IS NULL OR u.member_expires_at >= ?)",
     )
-    .all();
+    .all(new Date().toISOString());
   return rows
     .map((row) => {
       try {
@@ -307,6 +353,7 @@ function refundReportQuota(userId) {
 }
 
 setInterval(() => {
+  expireMembers();
   db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(new Date().toISOString());
   db.prepare("DELETE FROM report_usage WHERE day < ?").run(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
   db.prepare("DELETE FROM alert_log WHERE sent_at < ?").run(new Date(Date.now() - 90 * 86400000).toISOString());
@@ -321,6 +368,8 @@ module.exports = {
   userStats,
   setMemberLevel,
   setUserStatus,
+  adminResetPassword,
+  grantMembership,
   consumeReportQuota,
   refundReportQuota,
   getProfile,
