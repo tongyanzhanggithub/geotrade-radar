@@ -12,6 +12,8 @@
   const hsInput = document.getElementById("profile-hs");
   const countriesInput = document.getElementById("profile-countries");
   const routesInput = document.getElementById("profile-routes");
+  const webhookInput = document.getElementById("profile-webhook");
+  const emailAlertsInput = document.getElementById("profile-email-alerts");
   const errorBox = document.getElementById("profile-error");
 
   const splitTerms = (value) =>
@@ -31,6 +33,8 @@
     hsInput.value = joinTerms(profile?.hsCodes);
     countriesInput.value = joinTerms(profile?.countries);
     routesInput.value = joinTerms(profile?.routes);
+    webhookInput.value = profile?.webhook || "";
+    emailAlertsInput.checked = Boolean(profile?.emailAlerts);
   }
 
   function rerender() {
@@ -84,10 +88,17 @@
   form.addEventListener("submit", async (eventObject) => {
     eventObject.preventDefault();
     showError("");
+    const webhook = webhookInput.value.trim();
+    if (webhook && !webhook.startsWith("https://qyapi.weixin.qq.com/")) {
+      showError("Webhook 地址必须是企业微信机器人地址（https://qyapi.weixin.qq.com/ 开头）");
+      return;
+    }
     const profile = {
       hsCodes: splitTerms(hsInput.value),
       countries: splitTerms(countriesInput.value),
       routes: splitTerms(routesInput.value),
+      webhook,
+      emailAlerts: emailAlertsInput.checked,
     };
     try {
       const response = await fetch("/api/profile", {

@@ -902,6 +902,15 @@
             关注航线（如：红海, 亚洲—欧洲, 太平洋）
             <input type="text" id="profile-routes" placeholder="红海, 亚洲—欧洲" />
           </label>
+          <label>
+            企业微信预警机器人 Webhook（选填）
+            <input type="url" id="profile-webhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." />
+          </label>
+          <label class="risk-toggle">
+            <input type="checkbox" id="profile-email-alerts" />
+            <span></span>
+            同时发送邮件预警到我的注册邮箱
+          </label>
           <p class="modal-error" id="profile-error" hidden></p>
           <button class="modal-submit" id="profile-save" type="submit">保存画像</button>
         </form>

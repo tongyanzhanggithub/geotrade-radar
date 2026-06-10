@@ -29,6 +29,12 @@ db.exec(`
     data TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS alert_log (
+    user_id INTEGER NOT NULL,
+    item_key TEXT NOT NULL,
+    sent_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, item_key)
+  );
   CREATE TABLE IF NOT EXISTS report_usage (
     user_id INTEGER NOT NULL,
     day TEXT NOT NULL,
@@ -221,7 +227,41 @@ function sanitizeProfile(input) {
       .slice(0, 20)
       .map((item) => item.slice(0, 40));
   }
+  // 预警通道：企业微信群机器人 webhook（仅允许官方域名，防 SSRF）与邮件开关
+  const webhook = String(input?.webhook || "").trim();
+  profile.webhook = webhook.startsWith("https://qyapi.weixin.qq.com/") ? webhook.slice(0, 300) : "";
+  profile.emailAlerts = Boolean(input?.emailAlerts);
   return profile;
+}
+
+// 所有可接收预警的用户：状态正常、付费会员、有画像
+function listAlertSubscribers() {
+  const rows = db
+    .prepare(
+      "SELECT u.id, u.email, u.member_level, p.data FROM users u JOIN user_profile p ON p.user_id = u.id WHERE u.status = 'active' AND u.member_level != 'free'",
+    )
+    .all();
+  return rows
+    .map((row) => {
+      try {
+        return { id: row.id, email: row.email, memberLevel: row.member_level, profile: sanitizeProfile(JSON.parse(row.data)) };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+function alertAlreadySent(userId, itemKey) {
+  return Boolean(db.prepare("SELECT 1 FROM alert_log WHERE user_id = ? AND item_key = ?").get(userId, itemKey));
+}
+
+function markAlertSent(userId, itemKey) {
+  db.prepare("INSERT OR IGNORE INTO alert_log (user_id, item_key, sent_at) VALUES (?, ?, ?)").run(
+    userId,
+    itemKey,
+    new Date().toISOString(),
+  );
 }
 
 function getProfile(userId) {
@@ -251,6 +291,7 @@ function refundReportQuota(userId) {
 setInterval(() => {
   db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(new Date().toISOString());
   db.prepare("DELETE FROM report_usage WHERE day < ?").run(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
+  db.prepare("DELETE FROM alert_log WHERE sent_at < ?").run(new Date(Date.now() - 90 * 86400000).toISOString());
 }, 60 * 60 * 1000).unref();
 
 module.exports = {
@@ -266,6 +307,9 @@ module.exports = {
   refundReportQuota,
   getProfile,
   saveProfile,
+  listAlertSubscribers,
+  alertAlreadySent,
+  markAlertSent,
   REPORT_DAILY_LIMITS,
   VALID_MEMBER_LEVELS,
   SESSION_TTL_MS,

@@ -5,7 +5,8 @@
       "name": "geotrade",
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],
-      "port": 4173
+      "port": 4173,
+      "env": { "ADMIN_TOKEN": "test123" }
     }
   ]
 }

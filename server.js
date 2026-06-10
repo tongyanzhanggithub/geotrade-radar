@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const auth = require("./auth.js");
+const alerts = require("./alerts.js");
 const chinaData = require("./china-data.js");
 
 const root = __dirname;
@@ -1334,6 +1335,14 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 401, { error: "管理口令不正确" });
       return;
     }
+    if (pathname === "/api/admin/alerts/run" && request.method === "POST") {
+      try {
+        sendJson(response, 200, await alerts.runAlertCheck(getSnapshot));
+      } catch (error) {
+        sendJson(response, 500, { error: error.message });
+      }
+      return;
+    }
     if (pathname === "/api/admin/stats" && request.method === "GET") {
       sendJson(response, 200, auth.userStats());
       return;
@@ -1399,3 +1408,8 @@ server.listen(port, host, () => {
 setInterval(() => {
   getSnapshot("day").catch(() => {});
 }, 5 * 60 * 1000).unref();
+
+// 预警检查：每 15 分钟把新事件与付费用户画像匹配并推送
+setInterval(() => {
+  alerts.runAlertCheck(getSnapshot).catch((error) => console.warn(`预警检查失败: ${error.message}`));
+}, 15 * 60 * 1000).unref();
