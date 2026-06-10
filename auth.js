@@ -35,6 +35,12 @@ db.exec(`
     sent_at TEXT NOT NULL,
     PRIMARY KEY (user_id, item_key)
   );
+  CREATE TABLE IF NOT EXISTS usage_stats (
+    day TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, metric)
+  );
   CREATE TABLE IF NOT EXISTS weekly_log (
     user_id INTEGER NOT NULL,
     week TEXT NOT NULL,
@@ -249,6 +255,28 @@ function setUserStatus(userId, status) {
   return publicUser(db.prepare("SELECT * FROM users WHERE id = ?").get(userId));
 }
 
+// 极简用量统计：按天 × 指标计数（指标=规整后的 API 路径）。出错不影响业务。
+function recordUsage(metric) {
+  try {
+    db.prepare(
+      "INSERT INTO usage_stats (day, metric, count) VALUES (?, ?, 1) ON CONFLICT(day, metric) DO UPDATE SET count = count + 1",
+    ).run(new Date().toISOString().slice(0, 10), String(metric).slice(0, 80));
+  } catch {
+    /* 统计失败静默忽略 */
+  }
+}
+
+function usageSummary(days = 14) {
+  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const rows = db
+    .prepare("SELECT day, metric, count FROM usage_stats WHERE day >= ? ORDER BY day DESC, count DESC")
+    .all(since);
+  const totals = db
+    .prepare("SELECT metric, SUM(count) AS total FROM usage_stats WHERE day >= ? GROUP BY metric ORDER BY total DESC")
+    .all(since);
+  return { since, days, totals, daily: rows };
+}
+
 // 每会员等级的 AI 简报每日生成次数上限
 const REPORT_DAILY_LIMITS = { free: 0, member: 5, pro: 20 };
 
@@ -370,6 +398,8 @@ module.exports = {
   setUserStatus,
   adminResetPassword,
   grantMembership,
+  recordUsage,
+  usageSummary,
   consumeReportQuota,
   refundReportQuota,
   getProfile,

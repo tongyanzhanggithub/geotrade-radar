@@ -109,8 +109,26 @@
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 403) {
+          // 钩子：用他刚填的画像现场数一遍相关事件，让价值可见
+          let teaser = "";
+          try {
+            const terms = [...profile.hsCodes, ...profile.countries, ...profile.routes].map((t) => t.toLowerCase());
+            if (terms.length && Array.isArray(events)) {
+              const count = events.filter((ev) =>
+                terms.some((term) =>
+                  [ev.title, ev.summary, ...ev.countries, ...ev.sectors, ...ev.commodities, ev.route]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(term),
+                ),
+              ).length;
+              if (count > 0) teaser = `当前有 <b>${count} 条</b>与你画像相关的风险事件。`;
+            }
+          } catch {
+            /* 钩子失败不影响提示 */
+          }
           errorBox.hidden = false;
-          errorBox.innerHTML = `${data.error || "会员专属功能"} <a href="./pricing.html" style="color:var(--teal,#4cd9b0)">查看订阅方案 →</a>`;
+          errorBox.innerHTML = `${teaser}${data.error || "会员专属功能"} <a href="./pricing.html" style="color:var(--teal,#4cd9b0)">查看订阅方案 →</a>`;
           return;
         }
         showError(data.error || "保存失败，请稍后再试");

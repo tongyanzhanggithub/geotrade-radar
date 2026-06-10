@@ -239,11 +239,18 @@ const cache = new Map();
 const lastGood = new Map();
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
 function sendJson(response, status, value, headers = {}) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "Access-Control-Allow-Origin": "*",
+    ...securityHeaders,
     ...headers,
   });
   response.end(JSON.stringify(value));
@@ -1153,6 +1160,7 @@ function serveStatic(pathname, response) {
     response.writeHead(200, {
       "Content-Type": mime[path.extname(filePath)] || "application/octet-stream",
       "Cache-Control": "no-store",
+      ...securityHeaders,
     });
     response.end(data);
   });
@@ -1161,6 +1169,10 @@ function serveStatic(pathname, response) {
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const pathname = decodeURIComponent(url.pathname);
+  // 用量统计：按"路径模板"计数（用户 id 归一化），心跳类接口不计
+  if (pathname.startsWith("/api/") && pathname !== "/api/health" && pathname !== "/api/me") {
+    auth.recordUsage(pathname.replace(/\/\d+(\/|$)/g, "/:id$1"));
+  }
   if (pathname === "/api/snapshot") {
     try {
       const snapshot = await getSnapshot(url.searchParams.get("period") || "day", url.searchParams.get("force") === "1");
@@ -1378,6 +1390,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (pathname === "/api/admin/stats" && request.method === "GET") {
       sendJson(response, 200, auth.userStats());
+      return;
+    }
+    if (pathname === "/api/admin/usage" && request.method === "GET") {
+      sendJson(response, 200, auth.usageSummary(Number(url.searchParams.get("days")) || 14));
       return;
     }
     if (pathname === "/api/admin/users" && request.method === "GET") {

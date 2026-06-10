@@ -50,6 +50,33 @@
     errorBox.textContent = message;
   }
 
+  // 注册时的密码强度提示（仅提示，不强制）
+  const strengthBox = document.getElementById("password-strength");
+  function updateStrength() {
+    if (!strengthBox) return;
+    const value = passwordInput.value;
+    if (mode !== "register" || !value) {
+      strengthBox.hidden = true;
+      return;
+    }
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (value.length >= 12) score += 1;
+    if (/[a-zA-Z]/.test(value) && /\d/.test(value)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(value)) score += 1;
+    const levels = [
+      ["弱：至少需要 8 位", "#e87a7a"],
+      ["弱：建议混合字母和数字", "#e87a7a"],
+      ["中：可以再加长度或符号", "#e8c069"],
+      ["较强", "#4cd9b0"],
+      ["强", "#4cd9b0"],
+    ];
+    strengthBox.hidden = false;
+    strengthBox.textContent = `密码强度 · ${levels[score][0]}`;
+    strengthBox.style.color = levels[score][1];
+  }
+  passwordInput.addEventListener("input", updateStrength);
+
   function setMode(nextMode) {
     mode = nextMode;
     showError("");
@@ -57,6 +84,7 @@
     tabRegister.classList.toggle("active", mode === "register");
     submitButton.textContent = mode === "login" ? "登录" : "注册";
     passwordInput.autocomplete = mode === "login" ? "current-password" : "new-password";
+    updateStrength();
   }
 
   function renderUser() {

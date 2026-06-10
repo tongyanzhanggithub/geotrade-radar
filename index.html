@@ -8,9 +8,9 @@
       content="GeoTrade Radar - 全球地缘政治、贸易、供应链与金融市场风险终端"
     />
     <title>GeoTrade Radar</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="./vendor/markercluster/MarkerCluster.css" />
+    <link rel="stylesheet" href="./vendor/markercluster/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -30,7 +30,7 @@
           <a href="#trade"><span class="lang-en">Trade Data</span><span class="lang-zh">贸易数据</span></a>
           <a href="#ai-brief"><span class="lang-en">Events</span><span class="lang-zh">事件情报</span></a>
           <a href="#ai-brief"><span class="lang-en">Reports</span><span class="lang-zh">AI简报</span></a>
-          <a href="#cta"><span class="lang-en">Pricing</span><span class="lang-zh">订阅方案</span></a>
+          <a href="#member-benefits"><span class="lang-en">Pricing</span><span class="lang-zh">订阅方案</span></a>
         </nav>
 
         <div class="lg-header-right">
@@ -357,6 +357,38 @@
       </section>
 
       <!-- 8. CTA -->
+      <section class="lg-section" id="member-benefits">
+        <div class="lg-section-head">
+          <h2>
+            <span class="lang-en">What members get</span>
+            <span class="lang-zh">会员能得到什么</span>
+          </h2>
+          <p>
+            <span class="lang-en">Not more data — answers about your business.</span>
+            <span class="lang-zh">不是更多数据，而是"与你的生意有关"的答案。</span>
+          </p>
+        </div>
+        <div class="lg-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px">
+          <div class="lg-card" style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px">
+            <h3 style="margin:0 0 8px">🎯 <span class="lang-en">My Radar</span><span class="lang-zh">我的雷达</span></h3>
+            <p style="margin:0;opacity:.75;line-height:1.7"><span class="lang-en">Set your products, markets and routes once — every feed filters to what affects you.</span><span class="lang-zh">填一次你的品类、出口市场和航线，全站事件流只看"与你有关"的。</span></p>
+          </div>
+          <div class="lg-card" style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px">
+            <h3 style="margin:0 0 8px">📲 <span class="lang-en">Instant alerts</span><span class="lang-zh">微信 / 邮件预警</span></h3>
+            <p style="margin:0;opacity:.75;line-height:1.7"><span class="lang-en">EU files an anti-dumping case on your product? Your phone knows within 15 minutes.</span><span class="lang-zh">欧盟对你的品类立案反倾销？15 分钟内推送到你的微信——不用天天开网页盯。</span></p>
+          </div>
+          <div class="lg-card" style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px">
+            <h3 style="margin:0 0 8px">📋 <span class="lang-en">AI weekly brief</span><span class="lang-zh">AI 专属周报</span></h3>
+            <p style="margin:0;opacity:.75;line-height:1.7"><span class="lang-en">Every Monday: your markets, your risks, and what to do next week.</span><span class="lang-zh">每周一早上，一份基于你画像的分析直达邮箱：你的市场动态、风险与下周建议。</span></p>
+          </div>
+        </div>
+        <div class="lg-hero-actions" style="margin-top:22px;justify-content:center">
+          <a class="lg-btn lg-btn--primary" href="./pricing.html" style="text-decoration:none">
+            <span class="lang-en">View plans →</span><span class="lang-zh">查看订阅方案 →</span>
+          </a>
+        </div>
+      </section>
+
       <section class="lg-cta" id="cta">
         <h2>
           <span class="lang-en">Start tracking global risks before they become business shocks.</span>
@@ -866,6 +898,7 @@
               密码
               <input type="password" id="account-password" required autocomplete="current-password" minlength="8" />
             </label>
+            <p id="password-strength" style="margin:-6px 0 0;font-size:12px;opacity:.8" hidden></p>
             <p class="modal-error" id="account-error" hidden></p>
             <button class="modal-submit" id="account-submit" type="submit">登录</button>
           </form>
@@ -881,9 +914,9 @@
       </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="./vendor/leaflet/leaflet.js"></script>
+    <script src="./vendor/markercluster/leaflet.markercluster.js"></script>
+    <script src="./vendor/leaflet-heat.js"></script>
     <div class="modal-overlay" id="profile-modal" hidden>
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
         <button class="icon-button modal-close" id="profile-modal-close" type="button" title="关闭">✕</button>
