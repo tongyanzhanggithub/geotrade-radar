@@ -24,6 +24,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);
   CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+  CREATE TABLE IF NOT EXISTS report_usage (
+    user_id INTEGER NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
+  );
 `);
 
 const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
@@ -180,8 +186,32 @@ function setUserStatus(userId, status) {
   return publicUser(db.prepare("SELECT * FROM users WHERE id = ?").get(userId));
 }
 
+// 每会员等级的 AI 简报每日生成次数上限
+const REPORT_DAILY_LIMITS = { free: 0, member: 5, pro: 20 };
+
+// 检查并占用一次当日简报额度。额度足够时计数 +1 并返回 { ok: true, used, limit }；
+// 不足时不计数，返回 { ok: false, used, limit }。
+function consumeReportQuota(userId, memberLevel) {
+  const limit = REPORT_DAILY_LIMITS[memberLevel] ?? 0;
+  const day = new Date().toISOString().slice(0, 10);
+  const row = db.prepare("SELECT count FROM report_usage WHERE user_id = ? AND day = ?").get(userId, day);
+  const used = row ? row.count : 0;
+  if (used >= limit) return { ok: false, used, limit };
+  db.prepare(
+    "INSERT INTO report_usage (user_id, day, count) VALUES (?, ?, 1) ON CONFLICT(user_id, day) DO UPDATE SET count = count + 1",
+  ).run(userId, day);
+  return { ok: true, used: used + 1, limit };
+}
+
+// 生成失败（API 报错等）时退还本次占用的额度
+function refundReportQuota(userId) {
+  const day = new Date().toISOString().slice(0, 10);
+  db.prepare("UPDATE report_usage SET count = count - 1 WHERE user_id = ? AND day = ? AND count > 0").run(userId, day);
+}
+
 setInterval(() => {
   db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(new Date().toISOString());
+  db.prepare("DELETE FROM report_usage WHERE day < ?").run(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
 }, 60 * 60 * 1000).unref();
 
 module.exports = {
@@ -193,6 +223,9 @@ module.exports = {
   userStats,
   setMemberLevel,
   setUserStatus,
+  consumeReportQuota,
+  refundReportQuota,
+  REPORT_DAILY_LIMITS,
   VALID_MEMBER_LEVELS,
   SESSION_TTL_MS,
 };

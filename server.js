@@ -1273,7 +1273,26 @@ const server = http.createServer(async (request, response) => {
     }
     try {
       const body = await readJsonBody(request);
-      sendJson(response, 200, await chinaData.generateReport(body.query));
+      const query = String(body.query || "").trim();
+      if (query.length > 200) {
+        sendJson(response, 400, { error: "查询内容请控制在 200 字以内" });
+        return;
+      }
+      const quota = auth.consumeReportQuota(user.id, user.memberLevel);
+      if (!quota.ok) {
+        const message =
+          quota.limit === 0
+            ? "AI 简报为会员专属功能，请升级会员后使用"
+            : `今日简报额度已用完（${quota.used}/${quota.limit}），明天再来或升级会员`;
+        sendJson(response, 403, { error: message, used: quota.used, limit: quota.limit });
+        return;
+      }
+      try {
+        sendJson(response, 200, await chinaData.generateReport(query));
+      } catch (error) {
+        auth.refundReportQuota(user.id);
+        throw error;
+      }
     } catch (error) {
       sendJson(response, error.code === "NO_KEY" ? 503 : 502, { error: error.message });
     }
