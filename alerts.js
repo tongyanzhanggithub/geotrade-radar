@@ -6,6 +6,7 @@
 const crypto = require("node:crypto");
 const tls = require("node:tls");
 const auth = require("./auth.js");
+const chinaData = require("./china-data.js");
 
 const MAX_ALERTS_PER_USER_PER_RUN = 5;
 
@@ -52,6 +53,22 @@ function collectItems(snapshot) {
     });
   }
   return items;
+}
+
+// 商务部贸易救济公告 → 候选条目（“你出口的品类被立案”正是最高价值的预警）
+async function collectMofcomItems() {
+  try {
+    const data = await chinaData.mofcomAnnouncements();
+    return (data.announcements || []).map((announcement) => ({
+      kind: `贸易救济·${announcement.type}`,
+      title: announcement.title,
+      summary: `商务部公告 ${announcement.date}`,
+      url: announcement.url,
+      source: "中国贸易救济信息网",
+    }));
+  } catch {
+    return []; // 抓取失败不影响其他预警
+  }
 }
 
 async function sendWebhook(webhookUrl, lines) {
@@ -162,7 +179,7 @@ async function runAlertCheck(getSnapshotFn, { log = console } = {}) {
   if (!subscribers.length) return { subscribers: 0, sent: 0 };
 
   const snapshot = await getSnapshotFn("day");
-  const items = collectItems(snapshot);
+  const items = [...collectItems(snapshot), ...(await collectMofcomItems())];
   let totalSent = 0;
 
   for (const subscriber of subscribers) {
@@ -204,4 +221,4 @@ async function runAlertCheck(getSnapshotFn, { log = console } = {}) {
   return { subscribers: subscribers.length, sent: totalSent };
 }
 
-module.exports = { runAlertCheck, matchesProfile, collectItems, itemKey, sendWebhook, sendEmail };
+module.exports = { runAlertCheck, matchesProfile, collectItems, collectMofcomItems, itemKey, sendWebhook, sendEmail };

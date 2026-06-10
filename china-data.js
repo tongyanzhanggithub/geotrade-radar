@@ -632,14 +632,11 @@ async function mofcomAnnouncements() {
     const items = [];
     for (const match of html.matchAll(pattern)) {
       const url = "https://cacs.mofcom.gov.cn" + match[3].replace(/&amp;/g, "&");
-      if (seen.has(url)) continue;
+      const title = match[4].replace(/&hellip;/g, "…").replace(/\s+/g, " ").trim();
+      if (seen.has(url) || seen.has(title)) continue;
       seen.add(url);
-      items.push({
-        date: match[1],
-        type: match[2].trim(),
-        title: match[4].replace(/&hellip;/g, "…").replace(/\s+/g, " ").trim(),
-        url,
-      });
+      seen.add(title);
+      items.push({ date: match[1], type: match[2].trim(), title, url });
     }
     items.sort((a, b) => (a.date < b.date ? 1 : -1));
     return {
