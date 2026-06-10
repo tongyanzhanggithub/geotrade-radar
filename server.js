@@ -1423,8 +1423,13 @@ setInterval(() => {
   alerts.runAlertCheck(getSnapshot).catch((error) => console.warn(`预警检查失败: ${error.message}`));
 }, 15 * 60 * 1000).unref();
 
-// AI 周报：每小时检查，周一早 8 点（UTC+8）后触发；weekly_log 保证每人每周一份
-setInterval(() => {
-  if (!weekly.isMondayMorning()) return;
-  weekly.runWeekly(getSnapshot).catch((error) => console.warn(`周报生成失败: ${error.message}`));
-}, 60 * 60 * 1000).unref();
+// AI 周报：每小时检查，周一早 8 点（UTC+8）后触发；weekly_log 保证每人每周一份。
+// 默认关闭以节省 API 费用，需要时设置环境变量 WEEKLY_REPORTS=on 开启
+// （手动触发接口 /api/admin/weekly/run 不受此开关影响）。
+if (process.env.WEEKLY_REPORTS === "on") {
+  setInterval(() => {
+    if (!weekly.isMondayMorning()) return;
+    weekly.runWeekly(getSnapshot).catch((error) => console.warn(`周报生成失败: ${error.message}`));
+  }, 60 * 60 * 1000).unref();
+  console.log("AI 周报定时任务已开启（每周一 8 点后生成）");
+}
