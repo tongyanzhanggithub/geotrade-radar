@@ -16,10 +16,18 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-80}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-test123}"
+# 数据目录：用户库 users.db 与缓存写入此处，与代码分离，git pull / 升级不受影响、便于备份
+DATA_DIR="${DATA_DIR:-$APP_DIR/data}"
 SERVICE=/etc/systemd/system/geotrade.service
 
 echo "==> 项目目录: $APP_DIR"
+echo "==> 数据目录: $DATA_DIR"
 echo "==> 端口: $PORT"
+
+if [ "$ADMIN_TOKEN" = "test123" ]; then
+  echo "⚠️  正在使用默认弱口令 test123，强烈建议改：sudo PORT=$PORT ADMIN_TOKEN='你的强口令' bash deploy/setup.sh"
+fi
+mkdir -p "$DATA_DIR"
 
 if [ "$(id -u)" != "0" ]; then
   echo "请用 root 运行：sudo PORT=$PORT ADMIN_TOKEN='...' bash deploy/setup.sh"
@@ -51,6 +59,8 @@ ExecStart=$(command -v node) $APP_DIR/server.js
 Environment=HOST=0.0.0.0
 Environment=PORT=$PORT
 Environment=ADMIN_TOKEN=$ADMIN_TOKEN
+Environment=DATA_DIR=$DATA_DIR
+Environment=NODE_ENV=production
 Restart=always
 RestartSec=3
 
