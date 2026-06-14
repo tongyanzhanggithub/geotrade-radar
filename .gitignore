@@ -3,3 +3,7 @@ users.db-journal
 users.db-wal
 users.db-shm
 node_modules/
+# 本地备份（含真实用户数据，严禁提交）
+*.bak
+*.bak-*
+*.db.bak-*

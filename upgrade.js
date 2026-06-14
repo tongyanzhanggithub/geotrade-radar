@@ -1141,15 +1141,15 @@ renderSelectedEvent = function renderSelectedEventUpgraded() {
   el("why-text").textContent = insight.why;
   el("detail-horizon").textContent = insight.horizon;
   el("affected-entities").innerHTML = [
-    ...event.countries.map((item) => `<span class="entity country">${item}</span>`),
-    ...event.sectors.map((item) => `<span class="entity sector">${item}</span>`),
-    ...event.commodities.map((item) => `<span class="entity commodity">${item}</span>`),
-    `<span class="entity route">${event.route}</span>`,
+    ...event.countries.map((item) => `<span class="entity country">${escapeMarkup(item)}</span>`),
+    ...event.sectors.map((item) => `<span class="entity sector">${escapeMarkup(item)}</span>`),
+    ...event.commodities.map((item) => `<span class="entity commodity">${escapeMarkup(item)}</span>`),
+    `<span class="entity route">${escapeMarkup(event.route)}</span>`,
   ].join("");
   el("related-assets").innerHTML = insight.assets
-    .map((asset, index) => `<span><b>${index % 3 === 0 ? "↑" : index % 3 === 1 ? "↕" : "!"}</b>${asset}</span>`)
+    .map((asset, index) => `<span><b>${index % 3 === 0 ? "↑" : index % 3 === 1 ? "↕" : "!"}</b>${escapeMarkup(asset)}</span>`)
     .join("");
-  el("watch-indicators").innerHTML = insight.indicators.map((indicator) => `<li>${indicator}</li>`).join("");
+  el("watch-indicators").innerHTML = insight.indicators.map((indicator) => `<li>${escapeMarkup(indicator)}</li>`).join("");
 };
 
 renderEventList = function renderEventListUpgraded() {
@@ -1177,13 +1177,13 @@ renderEventList = function renderEventListUpgraded() {
                 <span>· ${event.confidence}% 可信</span>
                 ${state.watchlist.has(event.id) ? '<span>· 已观察</span>' : ""}
               </span>
-              <h3>${event.title}</h3>
-              <p>${event.summary}</p>
-              <span class="event-context">${insight.horizon} · ${event.route}</span>
+              <h3>${escapeMarkup(event.title)}</h3>
+              <p>${escapeMarkup(event.summary)}</p>
+              <span class="event-context">${escapeMarkup(insight.horizon)} · ${escapeMarkup(event.route)}</span>
               <span class="event-tags">
-                ${event.countries.slice(0, 2).map((item) => `<span>${item}</span>`).join("")}
-                ${event.sectors.slice(0, 2).map((item) => `<span>${item}</span>`).join("")}
-                ${event.commodities.slice(0, 1).map((item) => `<span>${item}</span>`).join("")}
+                ${event.countries.slice(0, 2).map((item) => `<span>${escapeMarkup(item)}</span>`).join("")}
+                ${event.sectors.slice(0, 2).map((item) => `<span>${escapeMarkup(item)}</span>`).join("")}
+                ${event.commodities.slice(0, 1).map((item) => `<span>${escapeMarkup(item)}</span>`).join("")}
               </span>
             </span>
           </button>

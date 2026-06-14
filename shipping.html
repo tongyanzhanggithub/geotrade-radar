@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="供应链与航运雷达 Supply Chain & Shipping Radar - 关键海峡、运河、港口与全球贸易航线压力的实时情报系统"
+    />
+    <title>供应链与航运雷达 · Supply Chain &amp; Shipping Radar</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./china.css" />
+  </head>
+  <body class="china">
+    <!-- 会话校验中 -->
+    <div class="cn-guard" id="sp-guard">
+      <div class="cn-guard-mark">航</div>
+      <span>正在校验登录状态…</span>
+    </div>
+
+    <div class="cn-app" id="sp-app" hidden>
+      <header class="cn-topbar">
+        <a class="cn-brand" id="sp-brand" href="#home">
+          <span class="cn-brand-mark">航</span>
+          <span class="cn-brand-name">
+            <strong>供应链与航运雷达</strong>
+            <em>Supply Chain &amp; Shipping Radar</em>
+          </span>
+        </a>
+
+        <nav class="cn-nav" id="sp-nav" aria-label="模块导航">
+          <a href="#overview" data-nav="overview">航运总览</a>
+          <a href="#routes" data-nav="routes">航线压力</a>
+          <a href="#chokepoints" data-nav="chokepoints">关键节点</a>
+          <a href="#freight" data-nav="freight">运价指数</a>
+          <a href="#events" data-nav="events">供应链事件</a>
+        </nav>
+
+        <div class="cn-topbar-right">
+          <div class="cn-status" aria-label="航运状态">
+            <span class="cn-chip cn-chip--pulse"><i></i>航运脉搏：偏紧</span>
+            <span class="cn-chip cn-chip--risk"><i></i>航线压力：较高</span>
+            <span class="cn-updated" id="sp-updated">同步中…</span>
+          </div>
+          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
+          <button class="cn-logout" id="sp-logout" type="button">退出</button>
+        </div>
+      </header>
+
+      <main class="cn-main" id="sp-main" aria-live="polite"></main>
+
+      <footer class="cn-footer">
+        <span>供应链与航运雷达 · Supply Chain &amp; Shipping Radar</span>
+        <span>SCFI 实时运价 + 运营态势参考模型 · © 2026</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="sp-toast" role="status" aria-live="polite"></div>
+
+    <script src="./shipping.js"></script>
+  </body>
+</html>

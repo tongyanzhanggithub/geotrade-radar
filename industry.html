@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="国际产业雷达 Global Industry Radar - 中外产业全景对比、中国地位与自主可控（卡脖子）地图"
+    />
+    <title>国际产业雷达 · Global Industry Radar</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./china.css" />
+  </head>
+  <body class="china">
+    <div class="cn-guard" id="in-guard">
+      <div class="cn-guard-mark">产</div>
+      <span>正在校验登录状态…</span>
+    </div>
+
+    <div class="cn-app" id="in-app" hidden>
+      <header class="cn-topbar">
+        <a class="cn-brand" id="in-brand" href="#home">
+          <span class="cn-brand-mark">产</span>
+          <span class="cn-brand-name">
+            <strong>国际产业雷达</strong>
+            <em>Global Industry Radar</em>
+          </span>
+        </a>
+
+        <nav class="cn-nav" id="in-nav" aria-label="模块导航">
+          <a href="#overview" data-nav="overview">产业全景</a>
+          <a href="#domestic" data-nav="domestic">国内产业</a>
+          <a href="#overseas" data-nav="overseas">国外产业</a>
+          <a href="#compare" data-nav="compare">中外对比</a>
+          <a href="#autonomy" data-nav="autonomy">自主可控榜</a>
+        </nav>
+
+        <div class="cn-topbar-right">
+          <div class="cn-status" aria-label="产业状态">
+            <span class="cn-chip cn-chip--pulse"><i></i>产业格局：分化</span>
+            <span class="cn-chip cn-chip--risk"><i></i>卡脖子环节：多</span>
+            <span class="cn-updated" id="in-updated">同步中…</span>
+          </div>
+          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
+          <button class="cn-logout" id="in-logout" type="button">退出</button>
+        </div>
+      </header>
+
+      <main class="cn-main" id="in-main" aria-live="polite"></main>
+
+      <footer class="cn-footer">
+        <span>国际产业雷达 · Global Industry Radar</span>
+        <span>中外产业对比为结构化研判 · © 2026</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="in-toast" role="status" aria-live="polite"></div>
+
+    <script src="./industry.js"></script>
+  </body>
+</html>

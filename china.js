@@ -524,11 +524,13 @@
 
   function viewDashboard() {
     const d = liveData.overview || DASHBOARD;
-    const trendMax = Math.max(...d.trend);
-    const trendMin = Math.min(...d.trend);
-    const pts = d.trend
+    // 实时 overview 的 trend 可能为空（某年 Comtrade 缺数据）→ Math.max(...[]) 会得 -Infinity 致 NaN，回退演示趋势
+    const trend = Array.isArray(d.trend) && d.trend.length ? d.trend : DASHBOARD.trend;
+    const trendMax = Math.max(...trend);
+    const trendMin = Math.min(...trend);
+    const pts = trend
       .map((v, i) => {
-        const x = (i / (d.trend.length - 1)) * 100;
+        const x = (i / (trend.length - 1)) * 100;
         const y = 100 - ((v - trendMin) / (trendMax - trendMin || 1)) * 100;
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })

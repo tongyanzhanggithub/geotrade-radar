@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="能源与大宗商品雷达 Energy & Commodities Radar - 原油天然气、贵金属、工业金属与农产品的实时价格、供需与地缘风险情报系统"
+    />
+    <title>能源与大宗商品雷达 · Energy &amp; Commodities Radar</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./china.css" />
+  </head>
+  <body class="china">
+    <!-- 会话校验中 -->
+    <div class="cn-guard" id="en-guard">
+      <div class="cn-guard-mark">能</div>
+      <span>正在校验登录状态…</span>
+    </div>
+
+    <div class="cn-app" id="en-app" hidden>
+      <header class="cn-topbar">
+        <a class="cn-brand" id="en-brand" href="#home">
+          <span class="cn-brand-mark">能</span>
+          <span class="cn-brand-name">
+            <strong>能源与大宗商品雷达</strong>
+            <em>Energy &amp; Commodities Radar</em>
+          </span>
+        </a>
+
+        <nav class="cn-nav" id="en-nav" aria-label="模块导航">
+          <a href="#overview" data-nav="overview">商品总览</a>
+          <a href="#energy" data-nav="energy">能源</a>
+          <a href="#metals" data-nav="metals">金属</a>
+          <a href="#agri" data-nav="agri">农产品</a>
+          <a href="#events" data-nav="events">大宗事件</a>
+        </nav>
+
+        <div class="cn-topbar-right">
+          <div class="cn-status" aria-label="大宗商品状态">
+            <span class="cn-chip cn-chip--pulse"><i></i>商品脉搏：分化</span>
+            <span class="cn-chip cn-chip--risk"><i></i>价格波动：偏高</span>
+            <span class="cn-updated" id="en-updated">同步中…</span>
+          </div>
+          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
+          <button class="cn-logout" id="en-logout" type="button">退出</button>
+        </div>
+      </header>
+
+      <main class="cn-main" id="en-main" aria-live="polite"></main>
+
+      <footer class="cn-footer">
+        <span>能源与大宗商品雷达 · Energy &amp; Commodities Radar</span>
+        <span>Yahoo Finance 实时报价 · 驱动因素为参考分析 · © 2026</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="en-toast" role="status" aria-live="polite"></div>
+
+    <script src="./energy.js"></script>
+  </body>
+</html>

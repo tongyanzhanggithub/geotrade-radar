@@ -31,7 +31,11 @@
   const rsLogout = document.getElementById("rs-logout");
   const radarCardActive = document.querySelector('.rs-card[data-radar="global"]');
   const radarCardChina = document.querySelector('.rs-card[data-radar="china"]');
+  const radarCardShipping = document.querySelector('.rs-card[data-radar="shipping"]');
+  const radarCardEnergy = document.querySelector('.rs-card[data-radar="energy"]');
+  const radarCardIndustry = document.querySelector('.rs-card[data-radar="industry"]');
   const brandHome = document.getElementById("brand-home");
+  const radarSwitch = document.getElementById("radar-switch");
 
   const memberLevelLabels = { free: "普通用户", member: "会员", pro: "高级会员" };
 
@@ -283,7 +287,22 @@
     radarCardChina.addEventListener("click", () => {
       window.location.href = "china.html";
     });
+  if (radarCardShipping)
+    radarCardShipping.addEventListener("click", () => {
+      window.location.href = "shipping.html";
+    });
+  if (radarCardEnergy)
+    radarCardEnergy.addEventListener("click", () => {
+      window.location.href = "energy.html";
+    });
+  if (radarCardIndustry)
+    radarCardIndustry.addEventListener("click", () => {
+      window.location.href = "industry.html";
+    });
   if (rsLogout) rsLogout.addEventListener("click", doLogout);
+
+  // 顶栏「⊞ 雷达选择」按钮 → 返回雷达选择
+  if (radarSwitch) radarSwitch.addEventListener("click", backToRadarSelect);
 
   // 仪表盘左上角品牌 → 返回雷达选择
   if (brandHome) {

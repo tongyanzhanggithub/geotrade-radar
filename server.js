@@ -5,6 +5,9 @@ const auth = require("./auth.js");
 const alerts = require("./alerts.js");
 const weekly = require("./weekly.js");
 const chinaData = require("./china-data.js");
+const shippingData = require("./shipping-data.js");
+const energyData = require("./energy-data.js");
+const industryData = require("./industry-data.js");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
@@ -1146,7 +1149,17 @@ async function getSnapshot(period = "day", force = false) {
 function serveStatic(pathname, response) {
   const requestedPath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const filePath = path.resolve(root, requestedPath);
-  if (!filePath.startsWith(root)) {
+  // 路径穿越防护：比较时带上分隔符，避免同名前缀兄弟目录（如 geotrade-radar-secrets）绕过
+  const rootPrefix = root.endsWith(path.sep) ? root : root + path.sep;
+  if (filePath !== root && !filePath.startsWith(rootPrefix)) {
+    response.writeHead(403);
+    response.end("Forbidden");
+    return;
+  }
+  // 敏感文件黑名单：禁止经静态服务下载数据库、备份与点文件
+  // （root 内的源码本身可被读取属已知，但用户数据库含邮箱与密码哈希、会话 token，必须拦截）
+  const base = path.basename(filePath).toLowerCase();
+  if (base.startsWith(".") || /\.(db|sqlite)(-(journal|wal|shm))?$/.test(base) || base.includes(".bak")) {
     response.writeHead(403);
     response.end("Forbidden");
     return;
@@ -1172,6 +1185,24 @@ const server = http.createServer(async (request, response) => {
   // 用量统计：按"路径模板"计数（用户 id 归一化），心跳类接口不计
   if (pathname.startsWith("/api/") && pathname !== "/api/health" && pathname !== "/api/me") {
     auth.recordUsage(pathname.replace(/\/\d+(\/|$)/g, "/:id$1"));
+  }
+  // 雷达数据端点统一守卫：要求登录 + 按 IP 限流（与“登录后才进雷达”的产品形态一致，
+  // 避免数据接口在服务端裸奔；/api/china/report 自带鉴权与配额，排除在外）
+  const isRadarDataApi =
+    pathname === "/api/snapshot" ||
+    pathname === "/api/shipping/snapshot" ||
+    pathname === "/api/energy/snapshot" ||
+    pathname === "/api/industry/snapshot" ||
+    (pathname.startsWith("/api/china/") && pathname !== "/api/china/report");
+  if (isRadarDataApi) {
+    if (!currentUser(request)) {
+      sendJson(response, 401, { error: "请先登录" });
+      return;
+    }
+    if (!rateLimit(`radar:${clientIp(request)}`, 120, 60 * 1000)) {
+      sendJson(response, 429, { error: "请求过于频繁，请稍后再试" });
+      return;
+    }
   }
   if (pathname === "/api/snapshot") {
     try {
@@ -1251,6 +1282,30 @@ const server = http.createServer(async (request, response) => {
       return;
     }
     sendJson(response, 405, { error: "不支持的请求方法" });
+    return;
+  }
+  if (pathname === "/api/shipping/snapshot") {
+    try {
+      sendJson(response, 200, await shippingData.snapshot());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/energy/snapshot") {
+    try {
+      sendJson(response, 200, await energyData.snapshot());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/industry/snapshot") {
+    try {
+      sendJson(response, 200, await industryData.snapshot());
+    } catch (error) {
+      sendJson(response, 502, { error: error.message });
+    }
     return;
   }
   if (pathname === "/api/china/overview") {

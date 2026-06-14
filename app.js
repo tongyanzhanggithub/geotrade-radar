@@ -540,6 +540,9 @@ const state = {
 };
 
 const el = (id) => document.getElementById(id);
+// HTML 转义：事件等数据可能来自外部实时源（GDELT/RSS），插入 innerHTML 前必须转义防 XSS
+const escHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const scoreClass = (score) => (score >= 80 ? "critical" : score >= 65 ? "elevated" : "guarded");
 const scoreColor = (score) => (score >= 80 ? "var(--red)" : score >= 65 ? "var(--amber)" : "var(--teal)");
 const markerX = (lon) => ((lon + 180) / 360) * 100;
@@ -611,11 +614,11 @@ function renderEventList() {
               <span>${event.time}</span>
               ${state.watchlist.has(event.id) ? '<span>· 已观察</span>' : ""}
             </span>
-            <h3>${event.title}</h3>
-            <p>${event.summary}</p>
+            <h3>${escHtml(event.title)}</h3>
+            <p>${escHtml(event.summary)}</p>
             <span class="event-tags">
-              ${event.countries.slice(0, 2).map((item) => `<span>${item}</span>`).join("")}
-              ${event.commodities.slice(0, 1).map((item) => `<span>${item}</span>`).join("")}
+              ${event.countries.slice(0, 2).map((item) => `<span>${escHtml(item)}</span>`).join("")}
+              ${event.commodities.slice(0, 1).map((item) => `<span>${escHtml(item)}</span>`).join("")}
             </span>
           </span>
         </button>
@@ -634,8 +637,8 @@ function renderMarkers() {
           class="map-marker ${state.selectedEventId === event.id ? "active" : ""}"
           data-event-id="${event.id}"
           type="button"
-          title="${event.title} · 风险 ${event.score}"
-          aria-label="${event.title}"
+          title="${escHtml(event.title)} · 风险 ${event.score}"
+          aria-label="${escHtml(event.title)}"
           style="
             left:${markerX(event.lon)}%;
             top:${markerY(event.lat)}%;
@@ -661,7 +664,7 @@ function renderSelectedEvent() {
   el("impact-chain").innerHTML = event.impact
     .map(
       ([label, text], index) =>
-        `<li data-step="0${index + 1}"><span><strong>${label}</strong><br />${text}</span></li>`,
+        `<li data-step="0${index + 1}"><span><strong>${escHtml(label)}</strong><br />${escHtml(text)}</span></li>`,
     )
     .join("");
   el("detail-confidence").textContent = `${event.confidence}%`;
@@ -702,10 +705,10 @@ function renderMarketTab() {
             <article class="market-card">
               <header>
                 <div>
-                  <span class="market-symbol">${market.symbol}</span>
-                  <h3>${market.name}</h3>
+                  <span class="market-symbol">${escHtml(market.symbol)}</span>
+                  <h3>${escHtml(market.name)}</h3>
                 </div>
-                <span class="market-risk">${market.risk}</span>
+                <span class="market-risk">${escHtml(market.risk)}</span>
               </header>
               <div>
                 <div class="market-value">${market.value}</div>
@@ -841,16 +844,16 @@ function renderBriefTab() {
     "优先建立可追溯的供应商、商品与物流路线风险图谱，及时同步关键信号变化。",
   ].filter(Boolean);
 
-  const renderList = (points) => points.map((point) => `<li>${point}</li>`).join("");
+  const renderList = (points) => points.map((point) => `<li>${escHtml(point)}</li>`).join("");
 
   return `
     <div class="brief-layout">
       <article class="brief-lead">
         <span class="eyebrow">DAILY EXECUTIVE BRIEF · ${dateLabel}</span>
-        <h3>${headline}</h3>
-        <p>${summary}</p>
+        <h3>${escHtml(headline)}</h3>
+        <p>${escHtml(summary)}</p>
         <div class="event-tags">
-          ${topEvents.map((event) => `<span>${event.title} · ${event.score}</span>`).join("")}
+          ${topEvents.map((event) => `<span>${escHtml(event.title)} · ${event.score}</span>`).join("")}
         </div>
       </article>
       <article class="brief-column">
@@ -981,12 +984,7 @@ el("watch-button").addEventListener("click", () => {
   showToast(`观察列表：${names}`);
 });
 
-el("refresh-data").addEventListener("click", () => {
-  const now = new Date();
-  el("updated-at").textContent = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} CST`;
-  el("dock-status").textContent = "模拟数据 · 刚刚更新";
-  showToast("风险信号与市场数据已刷新");
-});
+// 刷新逻辑由 live-data.js 接管（syncLiveData(true)，走真实同步）；此处不再绑定旧的模拟刷新，避免状态冲突
 
 el("expand-dock").addEventListener("click", () => {
   const expanded = el("expand-dock").closest(".analysis-dock").classList.toggle("expanded");
