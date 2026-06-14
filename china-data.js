@@ -11,7 +11,7 @@ const path = require("node:path");
 const PREVIEW = "https://comtradeapi.un.org/public/v1/preview/C/A/HS";
 const CHINA = 156;
 const WORLD = 0;
-const CACHE_FILE = path.join(__dirname, "china-cache.json");
+const CACHE_FILE = path.join(process.env.DATA_DIR || __dirname, "china-cache.json");
 const TTL_MS = 12 * 60 * 60 * 1000; // 12 小时
 
 // ---------- 缓存（内存 + 磁盘，贸易数据基本静态，尽量少打 API）----------

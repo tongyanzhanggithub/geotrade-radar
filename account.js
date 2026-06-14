@@ -34,6 +34,7 @@
   const radarCardShipping = document.querySelector('.rs-card[data-radar="shipping"]');
   const radarCardEnergy = document.querySelector('.rs-card[data-radar="energy"]');
   const radarCardIndustry = document.querySelector('.rs-card[data-radar="industry"]');
+  const radarCardSanctions = document.querySelector('.rs-card[data-radar="sanctions"]');
   const brandHome = document.getElementById("brand-home");
   const radarSwitch = document.getElementById("radar-switch");
 
@@ -298,6 +299,10 @@
   if (radarCardIndustry)
     radarCardIndustry.addEventListener("click", () => {
       window.location.href = "industry.html";
+    });
+  if (radarCardSanctions)
+    radarCardSanctions.addEventListener("click", () => {
+      window.location.href = "sanctions.html";
     });
   if (rsLogout) rsLogout.addEventListener("click", doLogout);
 

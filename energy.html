@@ -28,6 +28,11 @@
           </span>
         </a>
 
+        <a class="cn-back" href="index.html" title="返回雷达选择">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+          全部雷达
+        </a>
+
         <nav class="cn-nav" id="en-nav" aria-label="模块导航">
           <a href="#overview" data-nav="overview">商品总览</a>
           <a href="#energy" data-nav="energy">能源</a>
@@ -38,11 +43,10 @@
 
         <div class="cn-topbar-right">
           <div class="cn-status" aria-label="大宗商品状态">
-            <span class="cn-chip cn-chip--pulse"><i></i>商品脉搏：分化</span>
-            <span class="cn-chip cn-chip--risk"><i></i>价格波动：偏高</span>
+            <span class="cn-chip cn-chip--pulse"><i></i>商品脉搏：<b id="en-pulse">同步中</b></span>
+            <span class="cn-chip cn-chip--risk"><i></i>价格波动：<b id="en-risk">同步中</b></span>
             <span class="cn-updated" id="en-updated">同步中…</span>
           </div>
-          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
           <button class="cn-logout" id="en-logout" type="button">退出</button>
         </div>
       </header>

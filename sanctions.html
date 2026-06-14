@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="制裁与合规雷达 Sanctions & Compliance Radar - OFAC 制裁动态、制裁项目、清单筛查与出口合规要点"
+    />
+    <title>制裁与合规雷达 · Sanctions &amp; Compliance Radar</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./china.css" />
+  </head>
+  <body class="china">
+    <div class="cn-guard" id="sc-guard">
+      <div class="cn-guard-mark">制</div>
+      <span>正在校验登录状态…</span>
+    </div>
+
+    <div class="cn-app" id="sc-app" hidden>
+      <header class="cn-topbar">
+        <a class="cn-brand" id="sc-brand" href="#home">
+          <span class="cn-brand-mark">制</span>
+          <span class="cn-brand-name">
+            <strong>制裁与合规雷达</strong>
+            <em>Sanctions &amp; Compliance Radar</em>
+          </span>
+        </a>
+
+        <a class="cn-back" href="index.html" title="返回雷达选择">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+          全部雷达
+        </a>
+
+        <nav class="cn-nav" id="sc-nav" aria-label="模块导航">
+          <a href="#overview" data-nav="overview">合规总览</a>
+          <a href="#actions" data-nav="actions">制裁动态</a>
+          <a href="#programs" data-nav="programs">制裁项目</a>
+          <a href="#screening" data-nav="screening">清单筛查</a>
+          <a href="#compliance" data-nav="compliance">合规要点</a>
+        </nav>
+
+        <div class="cn-topbar-right">
+          <div class="cn-status" aria-label="制裁状态">
+            <span class="cn-chip cn-chip--pulse"><i></i>制裁动态：<b id="sc-pulse">同步中</b></span>
+            <span class="cn-chip cn-chip--risk"><i></i>高强度项目：<b id="sc-risk">同步中</b></span>
+            <span class="cn-updated" id="sc-updated">同步中…</span>
+          </div>
+          <button class="cn-logout" id="sc-logout" type="button">退出</button>
+        </div>
+      </header>
+
+      <main class="cn-main" id="sc-main" aria-live="polite"></main>
+
+      <footer class="cn-footer">
+        <span>制裁与合规雷达 · Sanctions &amp; Compliance Radar</span>
+        <span>OFAC 实时动态 + 合规参考模型 · 非法律意见 · © 2026</span>
+      </footer>
+    </div>
+
+    <div class="toast" id="sc-toast" role="status" aria-live="polite"></div>
+
+    <script src="./sanctions.js"></script>
+  </body>
+</html>

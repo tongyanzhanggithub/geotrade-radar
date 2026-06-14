@@ -142,7 +142,14 @@ body.china {
   cursor: pointer;
   transition: 150ms ease;
 }
-.cn-back:hover { border-color: var(--cn-red); color: var(--cn-red); }
+.cn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+}
+.cn-back svg { fill: currentColor; flex: 0 0 auto; }
+.cn-back:hover { border-color: var(--cn-gold); color: var(--cn-gold); }
 .cn-logout:hover { border-color: var(--red); color: var(--red); }
 
 /* ---------- 主体容器 ---------- */

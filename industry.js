@@ -214,6 +214,7 @@
       .then((data) => {
         liveData.snapshot = data;
         if (updated) updated.textContent = `${data.summary.total} 产业 · ${data.summary.sectorCount} 大类`;
+        setStatus(data);
       })
       .catch(() => {
         liveData.failed = true;
@@ -223,6 +224,15 @@
         liveData.loading = false;
         render();
       });
+  }
+
+  // 顶栏状态徽章：由产业快照计算
+  function setStatus(s) {
+    const pulse = document.getElementById("in-pulse");
+    const risk = document.getElementById("in-risk");
+    const bp = s.summary.byPosition || {};
+    if (pulse) pulse.textContent = `领先 ${bp["领先"] || 0} · 受制 ${bp["受制"] || 0}`;
+    if (risk) risk.textContent = `${s.summary.chokepointCount} 个 · 平均自主 ${s.summary.avgAutonomy}`;
   }
 
   function render() {

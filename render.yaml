@@ -1,0 +1,23 @@
+# Render 一键蓝图 —— 连接 GitHub 仓库后，Render 读取本文件自动创建服务。
+# 文档：https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: geotrade-radar
+    runtime: docker            # 用根目录 Dockerfile 构建
+    region: oregon             # 海外节点，数据源访问正常、免备案
+    plan: starter              # starter 常驻不休眠($7/月)；free 会休眠且无持久磁盘
+    healthCheckPath: /api/health
+    autoDeploy: true           # GitHub 推送即自动部署
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATA_DIR
+        value: /data           # 指向下方持久磁盘
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_TOKEN
+        sync: false            # 密钥：在 Render 控制台手动填强口令，不写入仓库
+    disk:
+      name: geotrade-data
+      mountPath: /data         # 用户库 users.db 与缓存持久化于此，重新部署不丢
+      sizeGB: 1

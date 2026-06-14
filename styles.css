@@ -5817,9 +5817,9 @@ body[data-reading-size="max"] .ashare-market-board span {
   color: var(--bg, #fff);
 }
 
-.radar-switch span {
-  font-size: 13px;
-  line-height: 1;
+.radar-switch svg {
+  fill: currentColor;
+  flex: 0 0 auto;
 }
 
 /* ============================================================

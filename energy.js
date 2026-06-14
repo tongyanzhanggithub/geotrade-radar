@@ -17,11 +17,12 @@
 
   const VIEWS = ["home", "overview", "energy", "metals", "agri", "events"];
   const state = { view: "home" };
-  const liveData = { snapshot: null, loading: false, failed: false };
+  const liveData = { snapshot: null, loading: false, failed: false, events: null, eventsLoading: false };
 
   // ----------------------- 工具函数 -----------------------
   const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
 
   function pct(n) {
     if (n === null || n === undefined || Number.isNaN(n)) return "<b>—</b>";
@@ -176,20 +177,43 @@
     { title: "实际利率回落，黄金避险买盘升温", node: "黄金", impact: "金价站稳高位", risk: "关注", time: "5 小时前" },
   ];
 
-  function viewEvents() {
-    const cards = DEMO_EVENTS.map(
-      (e) => `
+  function liveEventCard(e) {
+    const u = safeUrl(e.sourceUrl);
+    const sev = e.score >= 80 ? "高" : e.score >= 65 ? "偏高" : "关注";
+    return `
       <section class="cn-panel cn-route-card">
         <div class="cn-route-head">
-          <div><h3 class="cn-panel-title">${esc(e.title)}</h3><small class="cn-muted">品种：${esc(e.node)} · ${esc(e.time)}</small></div>
+          <div><h3 class="cn-panel-title">${esc(e.title)}</h3><small class="cn-muted">${esc(e.source || "公开来源")} · ${esc(e.time || "实时")}</small></div>
+          ${riskTag(sev)}
+        </div>
+        ${e.summary ? `<p>${esc(e.summary)}</p>` : ""}
+        ${u ? `<div class="cn-route-meta"><a class="cn-chip" href="${esc(u)}" target="_blank" rel="noopener noreferrer">查看原文 ↗</a></div>` : ""}
+      </section>`;
+  }
+
+  function demoEventCard(e) {
+    return `
+      <section class="cn-panel cn-route-card">
+        <div class="cn-route-head">
+          <div><h3 class="cn-panel-title">${esc(e.title)}</h3><small class="cn-muted">品种：${esc(e.node)} · ${esc(e.time)} · 示例</small></div>
           ${riskTag(e.risk)}
         </div>
         <div class="cn-route-meta"><span class="cn-chip">${esc(e.impact)}</span></div>
-      </section>`
-    ).join("");
+      </section>`;
+  }
+
+  function viewEvents() {
+    const live = liveData.events;
+    if (live && live.length) {
+      return (
+        viewHead("大宗事件", `影响能源与大宗商品的实时事件（${live.length} 条 · 来源 GDELT/公开新闻）`) +
+        `<div class="cn-grid cn-grid--2">${live.map(liveEventCard).join("")}</div>`
+      );
+    }
+    const note = liveData.eventsLoading ? "正在同步实时事件…" : "实时大宗事件暂无，以下为示例：";
     return (
-      viewHead("大宗事件", "影响能源与大宗商品价格的事件（当前为演示数据，可接入全球事件流）") +
-      `<div class="cn-grid cn-grid--2">${cards}</div>`
+      viewHead("大宗事件", `影响能源与大宗商品价格的事件 · ${note}`) +
+      `<div class="cn-grid cn-grid--2">${DEMO_EVENTS.map(demoEventCard).join("")}</div>`
     );
   }
 
@@ -207,6 +231,37 @@
     events: viewEvents,
   };
 
+  // 顶栏状态徽章：由实时报价计算
+  function setStatus(s) {
+    const pulse = document.getElementById("en-pulse");
+    const risk = document.getElementById("en-risk");
+    const up = s.commodities.filter((c) => c.change > 0).length;
+    const down = s.commodities.filter((c) => c.change < 0).length;
+    if (pulse) pulse.textContent = up > down ? `多数上涨（${up}↑）` : up < down ? `多数下跌（${down}↓）` : "涨跌分化";
+    if (risk) {
+      const h = s.summary.highRisk;
+      risk.textContent = h >= 4 ? `高（${h} 个高波动）` : h >= 1 ? `偏高（${h} 个）` : "平稳";
+    }
+  }
+
+  // 实时大宗事件：从全局快照按 energy 分类拉取（月窗口取更多）
+  function ensureEvents() {
+    if (liveData.events || liveData.eventsLoading) return;
+    liveData.eventsLoading = true;
+    fetch("/api/snapshot?period=month", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((snap) => {
+        liveData.events = (snap.events || []).filter((e) => e.category === "energy");
+      })
+      .catch(() => {
+        liveData.events = [];
+      })
+      .finally(() => {
+        liveData.eventsLoading = false;
+        if (state.view === "events") render();
+      });
+  }
+
   // ----------------------- 数据加载 -----------------------
   function ensureSnapshot() {
     if (liveData.snapshot || liveData.loading || liveData.failed) return;
@@ -219,6 +274,7 @@
           updated.textContent =
             data.mode === "live" ? "实时报价" : data.mode === "partial" ? "部分实时" : "演示数据";
         }
+        setStatus(data);
       })
       .catch(() => {
         liveData.failed = true;
@@ -237,6 +293,7 @@
     window.scrollTo(0, 0);
     updateNav();
     ensureSnapshot();
+    if (state.view === "events") ensureEvents();
   }
 
   function updateNav() {

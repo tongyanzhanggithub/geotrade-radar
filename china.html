@@ -29,6 +29,11 @@
           </span>
         </a>
 
+        <a class="cn-back" href="index.html" title="返回雷达选择">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+          全部雷达
+        </a>
+
         <nav class="cn-nav" id="cn-nav" aria-label="模块导航">
           <a href="#dashboard" data-nav="dashboard">中国贸易总览</a>
           <a href="#products" data-nav="products">商品机会</a>
@@ -42,11 +47,10 @@
 
         <div class="cn-topbar-right">
           <div class="cn-status" aria-label="中国贸易状态">
-            <span class="cn-chip cn-chip--pulse"><i></i>中国贸易脉搏：平稳</span>
-            <span class="cn-chip cn-chip--risk"><i></i>出口风险：较高</span>
-            <span class="cn-updated">更新 2026-06-08 09:30 北京</span>
+            <span class="cn-chip cn-chip--pulse"><i></i>出口增速：<b id="cn-pulse">同步中</b></span>
+            <span class="cn-chip cn-chip--risk"><i></i>贸易摩擦：<b id="cn-risk">同步中</b></span>
+            <span class="cn-updated" id="cn-updated">同步中…</span>
           </div>
-          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
           <button class="cn-logout" id="cn-logout" type="button">退出</button>
         </div>
       </header>

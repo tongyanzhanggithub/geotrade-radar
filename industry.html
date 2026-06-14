@@ -27,6 +27,11 @@
           </span>
         </a>
 
+        <a class="cn-back" href="index.html" title="返回雷达选择">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+          全部雷达
+        </a>
+
         <nav class="cn-nav" id="in-nav" aria-label="模块导航">
           <a href="#overview" data-nav="overview">产业全景</a>
           <a href="#domestic" data-nav="domestic">国内产业</a>
@@ -37,11 +42,10 @@
 
         <div class="cn-topbar-right">
           <div class="cn-status" aria-label="产业状态">
-            <span class="cn-chip cn-chip--pulse"><i></i>产业格局：分化</span>
-            <span class="cn-chip cn-chip--risk"><i></i>卡脖子环节：多</span>
+            <span class="cn-chip cn-chip--pulse"><i></i>产业格局：<b id="in-pulse">同步中</b></span>
+            <span class="cn-chip cn-chip--risk"><i></i>卡脖子环节：<b id="in-risk">同步中</b></span>
             <span class="cn-updated" id="in-updated">同步中…</span>
           </div>
-          <a class="cn-back" href="index.html" title="返回雷达选择">⊞ 雷达</a>
           <button class="cn-logout" id="in-logout" type="button">退出</button>
         </div>
       </header>

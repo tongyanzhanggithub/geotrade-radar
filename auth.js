@@ -1,8 +1,16 @@
 const crypto = require("node:crypto");
 const path = require("node:path");
+const fs = require("node:fs");
 const { DatabaseSync } = require("node:sqlite");
 
-const db = new DatabaseSync(path.join(__dirname, "users.db"));
+// 数据目录：托管平台可设 DATA_DIR 指向持久磁盘，避免重新部署丢失用户库；默认应用目录
+const dataDir = process.env.DATA_DIR || __dirname;
+try {
+  fs.mkdirSync(dataDir, { recursive: true });
+} catch {
+  // 目录已存在或不可创建时忽略，交由打开数据库时报错
+}
+const db = new DatabaseSync(path.join(dataDir, "users.db"));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (

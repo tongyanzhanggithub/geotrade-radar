@@ -1645,6 +1645,31 @@
     app.hidden = false;
     bindGlobalEvents();
     syncFromHash();
+    loadTopbarStatus();
+  }
+
+  // 顶栏状态徽章：出口增速 + 更新时间(来自 overview)、贸易摩擦(对华贸易救济立案数)
+  function loadTopbarStatus() {
+    fetch("/api/china/overview", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((o) => {
+        const ex = (o.totals || []).find((t) => /^出口/.test(t.k));
+        const pulse = document.getElementById("cn-pulse");
+        if (pulse) pulse.textContent = ex && ex.yoy != null ? `${ex.yoy >= 0 ? "+" : ""}${ex.yoy}%` : "—";
+        const up = document.getElementById("cn-updated");
+        if (up && o.updatedAt) up.textContent = "更新于 " + String(o.updatedAt).slice(0, 10);
+      })
+      .catch(() => {});
+    fetch("/api/china/trade-remedies", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j) => {
+        const risk = document.getElementById("cn-risk");
+        if (risk && j.summary) risk.textContent = `近年 ${j.summary.recent} 起立案`;
+      })
+      .catch(() => {
+        const risk = document.getElementById("cn-risk");
+        if (risk) risk.textContent = "—";
+      });
   }
 
   boot();

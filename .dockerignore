@@ -1,0 +1,27 @@
+# 版本控制 / 依赖
+.git
+.gitignore
+node_modules
+
+# 用户库与缓存（运行时写入 /data 持久磁盘，镜像里不打包）
+users.db
+users.db-journal
+users.db-wal
+users.db-shm
+china-cache.json
+
+# 本地备份（含真实用户数据，严禁入镜像）
+*.bak
+*.bak-*
+
+# 开发 / 校验脚本与单文件分享版（运行时不需要）
+verify-*.js
+audit-responsive.js
+build-share.js
+share
+artifacts
+
+# 本地配置
+.claude
+.dockerignore
+Dockerfile

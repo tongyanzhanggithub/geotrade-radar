@@ -8,6 +8,7 @@ const chinaData = require("./china-data.js");
 const shippingData = require("./shipping-data.js");
 const energyData = require("./energy-data.js");
 const industryData = require("./industry-data.js");
+const sanctionsData = require("./sanctions-data.js");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
@@ -1193,6 +1194,7 @@ const server = http.createServer(async (request, response) => {
     pathname === "/api/shipping/snapshot" ||
     pathname === "/api/energy/snapshot" ||
     pathname === "/api/industry/snapshot" ||
+    pathname === "/api/sanctions/snapshot" ||
     (pathname.startsWith("/api/china/") && pathname !== "/api/china/report");
   if (isRadarDataApi) {
     if (!currentUser(request)) {
@@ -1305,6 +1307,19 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 200, await industryData.snapshot());
     } catch (error) {
       sendJson(response, 502, { error: error.message });
+    }
+    return;
+  }
+  if (pathname === "/api/sanctions/snapshot") {
+    try {
+      let period = url.searchParams.get("period") || "day";
+      if (!periods[period]) period = "day";
+      // 复用 OFAC 实时抓取与缓存（与全局快照同一缓存键，不重复请求）
+      const result = await cachedProvider(`sanctions:${period}`, 15 * 60 * 1000, () => loadSanctions(period));
+      sendJson(response, 200, sanctionsData.snapshot(result.data, { stale: result.stale, error: result.error, fetchedAt: result.fetchedAt }));
+    } catch (error) {
+      // OFAC 不可用时仍返回合规参考模型（actions 为空），保证页面可用
+      sendJson(response, 200, sanctionsData.snapshot([], { stale: true, error: error.message }));
     }
     return;
   }
