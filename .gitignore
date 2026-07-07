@@ -3,6 +3,8 @@ users.db-journal
 users.db-wal
 users.db-shm
 node_modules/
+# 标题翻译缓存（运行时生成，可再生，无需入库）
+title-translations.json
 # 本地备份（含真实用户数据，严禁提交）
 *.bak
 *.bak-*

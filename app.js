@@ -556,7 +556,7 @@ function matchesProfile(event) {
     .map((term) => term.toLowerCase())
     .filter(Boolean);
   if (!terms.length) return true;
-  const haystack = [event.title, event.summary, ...event.countries, ...event.sectors, ...event.commodities, event.route]
+  const haystack = [event.titleZh, event.title, event.summary, ...event.countries, ...event.sectors, ...event.commodities, event.route]
     .join(" ")
     .toLowerCase();
   return terms.some((term) => haystack.includes(term));
@@ -614,7 +614,8 @@ function renderEventList() {
               <span>${event.time}</span>
               ${state.watchlist.has(event.id) ? '<span>· 已观察</span>' : ""}
             </span>
-            <h3>${escHtml(event.title)}</h3>
+            <h3>${escHtml(event.titleZh || event.title)}</h3>
+            ${event.titleZh && event.titleZh !== event.title ? `<p class="event-original" lang="und">${escHtml(event.title)}</p>` : ""}
             <p>${escHtml(event.summary)}</p>
             <span class="event-tags">
               ${event.countries.slice(0, 2).map((item) => `<span>${escHtml(item)}</span>`).join("")}
@@ -637,8 +638,8 @@ function renderMarkers() {
           class="map-marker ${state.selectedEventId === event.id ? "active" : ""}"
           data-event-id="${event.id}"
           type="button"
-          title="${escHtml(event.title)} · 风险 ${event.score}"
-          aria-label="${escHtml(event.title)}"
+          title="${escHtml(event.titleZh || event.title)} · 风险 ${event.score}"
+          aria-label="${escHtml(event.titleZh || event.title)}"
           style="
             left:${markerX(event.lon)}%;
             top:${markerY(event.lat)}%;
@@ -659,7 +660,13 @@ function renderSelectedEvent() {
   const event = selectedEvent();
   el("focus-score").textContent = event.score;
   el("focus-category").textContent = `${event.categoryLabel} · ${event.route}`;
-  el("focus-title").textContent = event.title;
+  el("focus-title").textContent = event.titleZh || event.title;
+  const originalNode = el("focus-original");
+  if (originalNode) {
+    const showOriginal = event.titleZh && event.titleZh !== event.title;
+    originalNode.textContent = showOriginal ? event.title : "";
+    originalNode.hidden = !showOriginal;
+  }
   el("focus-summary").textContent = event.summary;
   el("impact-chain").innerHTML = event.impact
     .map(

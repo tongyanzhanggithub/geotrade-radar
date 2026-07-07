@@ -9,6 +9,7 @@ const shippingData = require("./shipping-data.js");
 const energyData = require("./energy-data.js");
 const industryData = require("./industry-data.js");
 const sanctionsData = require("./sanctions-data.js");
+const translate = require("./translate.js");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
@@ -533,7 +534,9 @@ async function loadGdeltEvents(period) {
     '"OpenAI" OR Anthropic OR "Google DeepMind" OR NVIDIA OR Microsoft OR Meta OR Tesla OR "Figure AI" OR "Boston Dynamics" OR FANUC OR Yaskawa OR ABB OR Unitree OR UBTECH OR AMD OR Broadcom OR Qualcomm OR Arm OR TSMC OR "SK Hynix" OR Samsung OR AWS OR Azure OR "Google Cloud" OR Oracle OR Cloudflare OR CrowdStrike OR "Palo Alto Networks" OR Fortinet OR Zscaler OR SentinelOne OR BYD OR CATL OR Rivian OR Apple OR Huawei OR Xiaomi OR Lenovo OR IBM OR IonQ OR Rigetti OR "D-Wave" OR SpaceX OR Starlink OR "Rocket Lab" OR Palantir OR Anduril OR Moderna OR BioNTech OR CRISPR OR Stripe OR PayPal OR Coinbase OR "AI chip" OR GPU OR HBM OR robotics OR "physical AI" OR "embodied AI" OR "edge AI" OR "digital twin" OR "data center" OR cybersecurity OR ransomware OR "electric vehicle" OR battery OR "quantum computing" OR satellite OR drone OR biotech OR stablecoin';
   const chinaAsiaQuery =
     '"China exports" OR "China trade" OR "China stimulus" OR "China economy" OR yuan OR renminbi OR PBOC OR "Belt and Road" OR "rare earth export" OR "export controls China" OR "Hong Kong stocks" OR "A-share" OR "CSI 300" OR "Shanghai Composite" OR "China property" OR "China manufacturing PMI" OR "China tech crackdown" OR "US-China trade"';
-  const query = `(tariff OR sanctions OR "export control" OR shipping OR port OR commodity OR energy OR ${chinaAsiaQuery} OR ${technologyQuery}) sourcelang:english`;
+  // 不限定 sourcelang：允许各国以本国语言发布的原文标题进入事件流（GDELT 仍按翻译后的
+  // 英文文本匹配关键词），中文翻译由 translate.js 统一补充，做到"原文 + 中文"。
+  const query = `(tariff OR sanctions OR "export control" OR shipping OR port OR commodity OR energy OR ${chinaAsiaQuery} OR ${technologyQuery})`;
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
   url.searchParams.set("query", query);
   url.searchParams.set("mode", "artlist");
@@ -1118,6 +1121,8 @@ async function getSnapshot(period = "day", force = false) {
     cachedProvider(`sanctions:${period}`, 15 * 60 * 1000, () => loadSanctions(period)),
   ]);
   const industryResult = await cachedProvider(`industry:${period}`, 5 * 60 * 1000, () => loadIndustryNews(period, eventResult.data));
+  // 给全球事件标题补充中文翻译（命中缓存即时返回，失败则回退原文，不阻断快照）
+  await translate.attachTitles(eventResult.data);
   const providerStatus = (source, sourceUrl, result) => ({
     source,
     sourceUrl,

@@ -459,6 +459,25 @@ p {
   -webkit-line-clamp: 2;
 }
 
+/* 事件卡片里的外文原标题：中文标题下方的一行灰色小字 */
+.event-card p.event-original {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8.5px;
+  font-style: italic;
+  opacity: 0.72;
+  -webkit-line-clamp: 1;
+}
+
+/* 焦点面板里的外文原标题 */
+.focus-original {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
 .event-tags {
   margin-top: 7px;
 }
