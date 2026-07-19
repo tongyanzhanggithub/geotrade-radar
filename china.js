@@ -1249,7 +1249,10 @@
 
   // ----------------------- 小组件 -----------------------
   function viewHead(title, sub) {
-    return `<div class="cn-view-head"><h2>${esc(title)}</h2><p>${esc(sub)}</p></div>`;
+    return `<div class="cn-view-head">
+      <div><h2>${esc(title)}</h2><p>${esc(sub)}</p></div>
+      ${exportButton()}
+    </div>`;
   }
   function panel(title, body) {
     return `<section class="cn-panel"><h3 class="cn-panel-title">${esc(title)}</h3>${body}</section>`;
@@ -1763,6 +1766,8 @@
     // 失败条上的「重试」：清掉当前视图的失败标记后重新拉取
     const retry = main.querySelector("[data-retry]");
     if (retry) retry.addEventListener("click", retryCurrentView);
+    const exportBtn = document.getElementById("cn-export");
+    if (exportBtn) exportBtn.addEventListener("click", doExport);
   }
 
   // 重试当前视图的数据加载（此前失败会被静默吞掉，用户没有任何补救手段）
@@ -1885,6 +1890,156 @@
           .join("")}
       </div>
     </div>`;
+  }
+
+  // ----------------------- 导出 CSV -----------------------
+  // 外贸公司要把数据放进内部周报，导出是刚需。只导出真实数据，
+  // 标「示例」的定性字段一律不进导出文件，避免流到别人的报告里。
+  function csvCell(v) {
+    const s = String(v == null ? "" : v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+  function downloadCsv(filename, rows) {
+    if (!rows || !rows.length) {
+      showToast("当前视图暂无可导出的实时数据");
+      return;
+    }
+    const body = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+    // BOM：让 Excel 正确识别 UTF-8 中文
+    const blob = new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast("已导出 " + filename);
+  }
+
+  // 各视图的导出内容：仅取已加载到的实时数据
+  function exportRows() {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const v = state.view;
+    if (v === "dashboard") {
+      const d = liveData.overview;
+      if (!d) return null;
+      const rows = [["中国贸易总览", `数据年份 ${d.period}`, `来源 ${d.source}`, `导出 ${stamp}`], [], ["指标", "金额", "同比%"]];
+      d.totals.forEach((t) => rows.push([t.k, t.v, t.yoy]));
+      const block = (title, items, cols) => {
+        rows.push([], [title], cols);
+        (items || []).forEach((i) => rows.push([i.label, i.note]));
+      };
+      block("主要出口商品", d.topExports, ["商品", "金额"]);
+      block("主要进口商品", d.topImports, ["商品", "金额"]);
+      block("主要出口市场", d.exportMarkets, ["市场", "金额"]);
+      block("主要进口来源", d.importSources, ["来源", "金额"]);
+      return { name: `华贸雷达_中国贸易总览_${d.period}_${stamp}.csv`, rows };
+    }
+    if (v === "products") {
+      const p = liveData.products[state.product];
+      if (!p) return null;
+      const rows = [
+        [`商品机会 · HS ${p.hs}`, p.desc || "", `数据年份 ${p.period}`, `导出 ${stamp}`],
+        [],
+        ["中国出口规模", p.scale],
+        ["同比%", p.yoy],
+        [],
+        ["主要出口目的国"],
+        ...p.dest.map((d) => [d.name, d.valueText]),
+        [],
+        ["增长最快市场"],
+        ...p.fastest.map((f) => [f]),
+      ];
+      return { name: `华贸雷达_商品_HS${p.hs}_${stamp}.csv`, rows };
+    }
+    if (v === "markets") {
+      const m = liveData.markets[state.market];
+      if (!m) return null;
+      const rows = [
+        [`出口市场 · ${state.market}`, `数据年份 ${m.period}`, `导出 ${stamp}`],
+        [],
+        ["中国对该国出口额", m.totalToCountry],
+        ["总体增长%", m.totalGrowth],
+        [],
+        ["从中国进口最多的商品"],
+        ...m.topFromCN.map((x) => [x]),
+        [],
+        ["增长最快商品"],
+        ...m.fastest.map((x) => [x]),
+      ];
+      return { name: `华贸雷达_市场_${state.market}_${stamp}.csv`, rows };
+    }
+    if (v === "import") {
+      const items = (liveData.dependency || []).filter((d) => d.live);
+      if (!items.length) return null;
+      const rows = [
+        ["进口依赖", `导出 ${stamp}`],
+        [],
+        ["商品", "HS", "进口金额", "来源国集中度", "主要来源国", "数据年份"],
+        ...items.map((i) => [i.name, i.hs, i.amount, i.concentration, (i.sources || []).join(" / "), i.period]),
+      ];
+      return { name: `华贸雷达_进口依赖_${stamp}.csv`, rows };
+    }
+    if (v === "regions") {
+      const lr = liveData.regions;
+      if (!lr) return null;
+      const rows = [
+        ["省市出口", `口径 ${lr.period}`, `来源 ${lr.source}`, `导出 ${stamp}`],
+        [],
+        ["排名", "省市", "出口额", "占比%"],
+        ...lr.list.map((p) => [p.rank, p.name, p.exportText, p.share]),
+      ];
+      return { name: `华贸雷达_省市出口_${stamp}.csv`, rows };
+    }
+    if (v === "policy") {
+      const p = liveData.policy;
+      if (!p || !p.cases) return null;
+      const rows = [
+        ["对华贸易救济案件", `来源 ${p.source}`, `导出 ${stamp}`],
+        [],
+        ["发起方", "类型", "商品", "状态", "日期"],
+        ...p.cases.map((c) => [c.reporter, c.type, c.product, c.status, c.date]),
+      ];
+      return { name: `华贸雷达_贸易救济_${stamp}.csv`, rows };
+    }
+    if (v === "freight") {
+      const d = liveData.freight;
+      if (!d || !d.composite) return null;
+      const rows = [
+        ["海运运价", `来源 ${d.source}`, `导出 ${stamp}`],
+        [],
+        ["指标", "数值"],
+        ["SCFI 综合指数", d.composite.current],
+        ["上期", d.composite.previous],
+        ["涨跌", d.composite.change],
+        ["涨跌%", d.composite.changePct],
+        ["发布日期", d.composite.date],
+      ];
+      if (d.routes && d.routes.length) {
+        rows.push([], ["航线", "单位", "运价", "环比%"]);
+        d.routes.forEach((r) => rows.push([r.route, r.unit, r.rate, r.changePct]));
+      }
+      return { name: `华贸雷达_海运运价_${stamp}.csv`, rows };
+    }
+    return null;
+  }
+
+  function doExport() {
+    const out = exportRows();
+    if (!out) {
+      showToast("请等待实时数据加载完成后再导出");
+      return;
+    }
+    downloadCsv(out.name, out.rows);
+  }
+
+  // 可导出的视图才显示按钮
+  const EXPORTABLE = ["dashboard", "products", "markets", "import", "regions", "policy", "freight"];
+  function exportButton() {
+    if (!EXPORTABLE.includes(state.view)) return "";
+    return `<button class="cn-export" id="cn-export" type="button" title="导出当前视图的实时数据为 CSV（Excel 可直接打开）">⤓ 导出 CSV</button>`;
   }
 
   // 画像为空时的引导条：告诉用户去哪儿设置
