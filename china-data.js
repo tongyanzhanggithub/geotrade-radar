@@ -3,7 +3,13 @@
 //   - overview():  中国进出口总额 / 多年趋势 / 同比 / Top 出口·进口商品 / Top 市场·来源
 //   - product(hs): 指定 HS 编码的中国出口规模 / 目的国 / 增长最快市场 / 同比 / 机会分
 // 数据来源：UN Comtrade（comtradeapi.un.org/public/v1/preview），单次最多 500 行，免密钥。
-// 贸易额单位为美元（USD）。年度数据通常滞后约 1 年。
+// 贸易额单位为美元（USD）。年度数据通常滞后 1-2 年（2026 年时最新为 2024）。
+//
+// preview 接口的两条硬限制（详见 comtrade() 注释）：
+//   - 每次请求只能查 1 个期间，多年必须逐年查询
+//   - 限流约 1 次/秒，需串行 + 退避重试
+// 冷启动 overview() 需串行十余次请求（约 30-40 秒），故结果缓存 12 小时并落盘，
+// server.js 启动后会在后台预热。
 // =====================================================================
 const fs = require("node:fs");
 const path = require("node:path");
@@ -38,19 +44,94 @@ async function cached(key, fn) {
 }
 
 // ---------- Comtrade 请求 ----------
-async function comtrade(params) {
-  const qs = new URLSearchParams({ includeDesc: "TRUE", ...params }).toString();
-  const url = `${PREVIEW}?${qs}`;
-  const res = await fetch(url, { headers: { "User-Agent": "GeoTradeRadar/1.0" } });
-  if (!res.ok) throw new Error(`Comtrade HTTP ${res.status}`);
-  const json = await res.json();
-  return Array.isArray(json.data) ? json.data : [];
+// preview 接口有两条硬限制，违反任一条都拿不到数据：
+//   1) 每次请求只能查 1 个期间（多年逗号拼接会返回 400
+//      "Maximum number of periods for preview is 1"）→ 多年数据必须逐年查询
+//   2) 限流约 1 次/秒，并发或密集请求会返回 429
+// 因此所有请求串行排队 + 最小间隔，并对 429 按其提示的秒数退避重试。
+const MIN_GAP_MS = 1100;
+const MAX_RETRY = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let lastCallAt = 0;
+let queue = Promise.resolve();
+
+// 串行执行：前一个失败也要继续跑后面的，避免一次失败卡死整条队列
+function enqueue(fn) {
+  const run = queue.then(fn, fn);
+  queue = run.then(
+    () => {},
+    () => {}
+  );
+  return run;
 }
 
-// 近 6 个自然年（用于趋势与"最新年"探测）
-function recentYears() {
-  const y = new Date().getFullYear();
-  return [y - 5, y - 4, y - 3, y - 2, y - 1, y].join(",");
+async function comtradeFetch(params) {
+  const qs = new URLSearchParams({ includeDesc: "TRUE", ...params }).toString();
+  const url = `${PREVIEW}?${qs}`;
+  for (let attempt = 0; ; attempt++) {
+    const gap = Date.now() - lastCallAt;
+    if (gap < MIN_GAP_MS) await sleep(MIN_GAP_MS - gap);
+    lastCallAt = Date.now();
+    const res = await fetch(url, {
+      headers: { "User-Agent": "GeoTradeRadar/1.0" },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (res.status === 429 && attempt < MAX_RETRY) {
+      const body = await res.text().catch(() => "");
+      const secs = Number((body.match(/again in (\d+)/) || [])[1]) || attempt + 1;
+      await sleep(secs * 1000 + 300);
+      continue;
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      let detail = "";
+      try {
+        const j = JSON.parse(body);
+        detail = j.error || j.message || "";
+      } catch {
+        /* 非 JSON 错误体，忽略 */
+      }
+      throw new Error(`Comtrade HTTP ${res.status}${detail ? "：" + detail : ""}`);
+    }
+    const json = await res.json();
+    return Array.isArray(json.data) ? json.data : [];
+  }
+}
+
+function comtrade(params) {
+  return enqueue(() => comtradeFetch(params));
+}
+
+// 逐年查询并合并（preview 每次只允许 1 个期间）。单年失败不影响其他年份。
+async function comtradeYears(params, years) {
+  const out = [];
+  for (const year of years) {
+    try {
+      out.push(...(await comtrade({ ...params, period: String(year) })));
+    } catch {
+      /* 该年缺数据或临时失败：跳过，用其余年份继续 */
+    }
+  }
+  return out;
+}
+
+// 年度数据通常滞后 1-2 年（例如 2026 年时最新可用为 2024）。
+// 从去年往前探测第一个有数据的年份，结果单独缓存，避免每次都探。
+async function latestDataYear() {
+  return cached("latestYear", async () => {
+    const now = new Date().getFullYear();
+    for (const candidate of [now - 1, now - 2, now - 3]) {
+      const rows = await comtrade({
+        reporterCode: CHINA,
+        partnerCode: WORLD,
+        flowCode: "X",
+        cmdCode: "TOTAL",
+        period: String(candidate),
+      });
+      if (rows.length) return candidate;
+    }
+    throw new Error("Comtrade 暂无可用年度数据");
+  });
 }
 
 // ---------- 中文名映射 ----------
@@ -130,10 +211,18 @@ function topList(rows, latestYear, { byPartner }, limit = 6) {
 // =====================================================================
 async function overview() {
   return cached("overview", async () => {
-    const years = recentYears();
-    // 1) 进出口总额多年趋势（各 1 次调用）
-    const expTotals = await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "X", cmdCode: "TOTAL", period: years });
-    const impTotals = await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "M", cmdCode: "TOTAL", period: years });
+    const latest = await latestDataYear();
+    const prev = latest - 1;
+    // 1) 出口总额取 5 年画趋势；进口只需最新年与上一年（用于同比），少打 3 次接口
+    const trendYears = [latest - 4, latest - 3, latest - 2, latest - 1, latest];
+    const expTotals = await comtradeYears(
+      { reporterCode: CHINA, partnerCode: WORLD, flowCode: "X", cmdCode: "TOTAL" },
+      trendYears
+    );
+    const impTotals = await comtradeYears(
+      { reporterCode: CHINA, partnerCode: WORLD, flowCode: "M", cmdCode: "TOTAL" },
+      [prev, latest]
+    );
 
     const byYear = (rows) => {
       const m = {};
@@ -143,19 +232,15 @@ async function overview() {
     const exp = byYear(expTotals);
     const imp = byYear(impTotals);
     const yearsAvail = Object.keys(exp).map(Number).sort((a, b) => a - b);
-    const latest = yearsAvail[yearsAvail.length - 1];
-    const prev = latest - 1;
 
     const expLatest = exp[latest] || 0;
     const impLatest = imp[latest] || 0;
 
     // 2) 最新年 Top 出口/进口商品（HS2）、Top 出口市场/进口来源（各 1 次）
-    const [expCmd, impCmd, expPartner, impPartner] = [
-      await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "X", cmdCode: "AG2", period: String(latest) }),
-      await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "M", cmdCode: "AG2", period: String(latest) }),
-      await comtrade({ reporterCode: CHINA, flowCode: "X", cmdCode: "TOTAL", period: String(latest) }),
-      await comtrade({ reporterCode: CHINA, flowCode: "M", cmdCode: "TOTAL", period: String(latest) }),
-    ];
+    const expCmd = await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "X", cmdCode: "AG2", period: String(latest) });
+    const impCmd = await comtrade({ reporterCode: CHINA, partnerCode: WORLD, flowCode: "M", cmdCode: "AG2", period: String(latest) });
+    const expPartner = await comtrade({ reporterCode: CHINA, flowCode: "X", cmdCode: "TOTAL", period: String(latest) });
+    const impPartner = await comtrade({ reporterCode: CHINA, flowCode: "M", cmdCode: "TOTAL", period: String(latest) });
 
     return {
       source: "UN Comtrade",
@@ -182,15 +267,11 @@ async function product(hs) {
   const code = String(hs || "").replace(/[^0-9]/g, "");
   if (!code) throw new Error("缺少 HS 编码");
   return cached("product:" + code, async () => {
-    const y = new Date().getFullYear();
-    // 取近 4 个自然年，确保"最新年"和"上一年"都在结果里（用于同比/增长最快）
-    const period = [y - 3, y - 2, y - 1, y].join(",");
-    const rows = await comtrade({ reporterCode: CHINA, flowCode: "X", cmdCode: code, period });
-    if (!rows.length) throw new Error("无该 HS 编码的出口数据");
-
-    const years = [...new Set(rows.map((r) => r.refYear))].sort((a, b) => a - b);
-    const latest = years[years.length - 1];
+    // 最新年 + 上一年即可（同比与"增长最快市场"都只需这两年）
+    const latest = await latestDataYear();
     const prev = latest - 1;
+    const rows = await comtradeYears({ reporterCode: CHINA, flowCode: "X", cmdCode: code }, [prev, latest]);
+    if (!rows.length) throw new Error("无该 HS 编码的出口数据");
     const desc = rows[0].cmdDesc || `HS ${code}`;
 
     const world = rows.find((r) => r.refYear === latest && r.partnerCode === WORLD);
@@ -245,15 +326,15 @@ async function market(partnerCode) {
   const code = Number(partnerCode);
   if (!code) throw new Error("缺少国家代码");
   return cached("market:" + code, async () => {
-    const y = new Date().getFullYear();
-    const period = [y - 3, y - 2, y - 1, y].join(",");
+    const latest = await latestDataYear();
+    const prev = latest - 1;
 
     // A) 中国对该国出口，按 HS2 分组（商品 / 增长 / 细分机会）
-    const ex = await comtrade({ reporterCode: CHINA, flowCode: "X", partnerCode: code, cmdCode: "AG2", period });
+    const ex = await comtradeYears(
+      { reporterCode: CHINA, flowCode: "X", partnerCode: code, cmdCode: "AG2" },
+      [prev, latest]
+    );
     if (!ex.length) throw new Error("无对该国出口数据");
-    const years = [...new Set(ex.map((r) => r.refYear))].sort((a, b) => a - b);
-    const latest = years[years.length - 1];
-    const prev = latest - 1;
     const latestRows = ex.filter((r) => r.refYear === latest);
     const prevMap = {};
     ex.filter((r) => r.refYear === prev).forEach((r) => (prevMap[r.cmdCode] = r.primaryValue));
@@ -305,13 +386,12 @@ async function dependency(hsList) {
     .map((s) => s.replace(/[^0-9]/g, ""))
     .filter(Boolean);
   if (!codes.length) throw new Error("缺少 HS 列表");
-  const y = new Date().getFullYear();
-  const period = [y - 2, y - 1, y].join(",");
-  // 并行抓取各 HS（首屏更快；按 HS 单独缓存）
+  const latestYear = await latestDataYear();
+  // 各 HS 并行发起，实际请求由 comtrade() 的串行队列限速，不会触发 429
   const results = await Promise.all(
     codes.map((code) =>
       cached("dep:" + code, async () => {
-        const rows = await comtrade({ reporterCode: CHINA, flowCode: "M", cmdCode: code, period });
+        const rows = await comtradeYears({ reporterCode: CHINA, flowCode: "M", cmdCode: code }, [latestYear]);
         if (!rows.length) return null;
         const latest = Math.max(...rows.map((r) => r.refYear));
         const latestRows = rows.filter((r) => r.refYear === latest);

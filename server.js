@@ -1562,6 +1562,16 @@ setInterval(() => {
   getSnapshot("day").catch(() => {});
 }, 5 * 60 * 1000).unref();
 
+// 华贸雷达总览预热：Comtrade preview 每次只能查 1 个期间且限流约 1 次/秒，
+// 冷启动要串行打十几次接口（约 30-40 秒）。启动后在后台先跑一遍，
+// 让首位访问「中国贸易总览」的用户直接命中 12 小时缓存。
+setTimeout(() => {
+  chinaData
+    .overview()
+    .then((o) => console.log(`华贸雷达总览缓存已预热（数据年份 ${o.period}）`))
+    .catch((error) => console.warn(`华贸雷达总览预热失败: ${error.message}`));
+}, 3000).unref();
+
 // 预警检查：每 15 分钟把新事件与付费用户画像匹配并推送
 setInterval(() => {
   alerts.runAlertCheck(getSnapshot).catch((error) => console.warn(`预警检查失败: ${error.message}`));
