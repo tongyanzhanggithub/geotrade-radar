@@ -468,6 +468,10 @@ async function regions() {
     source: "中国海关总署（各省出口）",
     period: "2024年1-11月",
     unit: "亿元人民币",
+    // 真实官方数据，但为内置的固定版本快照（非每次请求实时抓取）——
+    // 前端据此标注为"存档数据"，不冒充实时。
+    tier: "static",
+    vintageNote: "内置官方年度快照，非实时抓取",
     provinces,
   };
 }

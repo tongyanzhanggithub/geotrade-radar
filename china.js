@@ -3,7 +3,10 @@
 
   // ===========================================================
   // 华贸雷达 China Trade Radar
-  // 单页应用：会话校验 + 哈希路由 + 8 个情报模块（演示数据）
+  // 单页应用：会话校验 + 哈希路由 + 9 个情报模块
+  //
+  // 数据分级（见下方 TIER_META）：实时 / 存档 / 示例。
+  // 原则：加载中一律用骨架屏，绝不用演示数字冒充实时值；非真实字段一律带「示例」角标。
   // ===========================================================
 
   const guard = document.getElementById("cn-guard");
@@ -89,6 +92,66 @@
       .map((s) => `<span>${esc(s)}</span>`)
       .join('<b aria-hidden="true">→</b>')}</div>`;
   }
+
+  // ----------------------- 数据来源标记 -----------------------
+  // 商业化前提：用户必须能一眼分辨每个数字的来源，绝不能把示例值当实时值展示。
+  //   live   实时  — 本次请求从上游取得（UN Comtrade / WTO / 商务部 / 上海航交所）
+  //   static 存档  — 真实官方数据，但为固定版本快照（如省级出口 2024 年 1-11 月）
+  //   demo   示例  — 用于说明功能的参考内容，非真实观测值
+  const TIER_META = {
+    live: { cls: "live", label: "实时数据" },
+    static: { cls: "static", label: "存档数据" },
+    demo: { cls: "demo", label: "示例内容" },
+  };
+
+  // 数据来源条：渲染在视图标题下方
+  function sourceStrip({ tier = "demo", source, period, note }) {
+    const meta = TIER_META[tier] || TIER_META.demo;
+    const parts = [];
+    if (source) parts.push(esc(source));
+    if (period != null) parts.push(esc(period + (typeof period === "number" ? " 年度" : "")));
+    if (note) parts.push(esc(note));
+    return `<div class="cn-source cn-source--${meta.cls}"><i></i><b>${meta.label}</b>${
+      parts.length ? "：" + parts.join(" · ") : ""
+    }</div>`;
+  }
+
+  // 加载条：明确说明"正在加载"，不展示任何占位数字
+  function loadingStrip(what) {
+    return `<div class="cn-source cn-source--loading"><i></i><b>正在接入实时数据</b>：${esc(what || "请稍候")}…</div>`;
+  }
+
+  // 失败条：过去是静默回退到示例值，现在明确告知并提供重试
+  function errorStrip(what) {
+    return `<div class="cn-source cn-source--error"><i></i><b>数据获取失败</b>：${esc(
+      what || "上游数据源暂时不可用"
+    )}<button class="cn-retry" data-retry="1" type="button">重试</button></div>`;
+  }
+
+  // 行内"示例"角标：贴在单个非真实字段旁边
+  function demoChip(title) {
+    return `<span class="cn-demo-chip" title="${esc(title || "该字段为参考示例，非实时观测值")}">示例</span>`;
+  }
+
+  // ----------------------- 骨架屏 -----------------------
+  const skelLine = (w) => `<span class="cn-skel cn-skel--line" style="width:${w || 100}%"></span>`;
+  const skelKpis = (n = 3) =>
+    `<div class="cn-mini-kpis">${Array.from({ length: n })
+      .map(() => `<div class="cn-mini-kpi">${skelLine(60)}${skelLine(85)}${skelLine(45)}</div>`)
+      .join("")}</div>`;
+  const skelBars = (n = 6) =>
+    `<div class="cn-bars">${Array.from({ length: n })
+      .map(
+        () =>
+          `<div class="cn-bar-row">${skelLine(70)}<span class="cn-bar-track"><i class="cn-skel" style="width:${
+            30 + Math.round(Math.random() * 60)
+          }%"></i></span>${skelLine(40)}</div>`
+      )
+      .join("")}</div>`;
+  const skelRows = (n = 4) =>
+    `<div class="cn-skel-rows">${Array.from({ length: n })
+      .map(() => `<div class="cn-skel-row">${skelLine(45)}${skelLine(25)}</div>`)
+      .join("")}</div>`;
 
   // ----------------------- 演示数据 -----------------------
   const PULSE = [
@@ -510,40 +573,73 @@
       </div>
 
       <div class="cn-pulse">
-        ${PULSE.map(
-          (p) => `
-        <article class="cn-pulse-card cn-pulse-card--${p.tone}">
-          <span>${esc(p.k)}</span>
-          <strong>${esc(p.v)}</strong>
-          <small>${esc(p.note)}</small>
-        </article>`
-        ).join("")}
+        ${homePulseCards()}
       </div>
     </section>`;
   }
 
+  // 首页脉搏卡：第一张用真实的进出口总额（UN Comtrade），加载中显示骨架而非假数字；
+  // 后两张是定性判断，明确标注"示例"，避免用户当作实时观测值。
+  function homePulseCards() {
+    const o = liveData.overview;
+    const total = o && o.totals && o.totals[0];
+    const first = total
+      ? `<article class="cn-pulse-card cn-pulse-card--neutral">
+          <span>${esc(total.k)}${o.period != null ? `（${esc(o.period)}）` : ""}</span>
+          <strong>${esc(total.v)}</strong>
+          <small>同比 ${pct(total.yoy)}</small>
+        </article>`
+      : liveData.overviewFailed
+        ? `<article class="cn-pulse-card cn-pulse-card--neutral">
+          <span>进出口总额</span><strong class="cn-muted">暂不可用</strong><small>上游数据源连接失败</small>
+        </article>`
+        : `<article class="cn-pulse-card cn-pulse-card--neutral">
+          ${skelLine(70)}${skelLine(90)}${skelLine(50)}
+        </article>`;
+    const rest = PULSE.slice(1)
+      .map(
+        (p) => `
+        <article class="cn-pulse-card cn-pulse-card--${p.tone}">
+          <span>${esc(p.k)} ${demoChip()}</span>
+          <strong>${esc(p.v)}</strong>
+          <small>${esc(p.note)}</small>
+        </article>`
+      )
+      .join("");
+    return first + rest;
+  }
+
   function viewDashboard() {
-    const d = liveData.overview || DASHBOARD;
-    // 实时 overview 的 trend 可能为空（某年 Comtrade 缺数据）→ Math.max(...[]) 会得 -Infinity 致 NaN，回退演示趋势
-    const trend = Array.isArray(d.trend) && d.trend.length ? d.trend : DASHBOARD.trend;
-    const trendMax = Math.max(...trend);
-    const trendMin = Math.min(...trend);
-    const pts = trend
-      .map((v, i) => {
-        const x = (i / (trend.length - 1)) * 100;
-        const y = 100 - ((v - trendMin) / (trendMax - trendMin || 1)) * 100;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
+    const d = liveData.overview;
+    const ready = Boolean(d);
+    // 趋势可能为空（某年 Comtrade 缺数据）→ 此时不画折线，也不用演示趋势顶替
+    const trend = ready && Array.isArray(d.trend) && d.trend.length ? d.trend : null;
+    let pts = "";
+    if (trend) {
+      const trendMax = Math.max(...trend);
+      const trendMin = Math.min(...trend);
+      pts = trend
+        .map((v, i) => {
+          const x = (i / (trend.length - 1)) * 100;
+          const y = 100 - ((v - trendMin) / (trendMax - trendMin || 1)) * 100;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    }
     return `
     ${viewHead("中国贸易总览", "进出口态势、省市热力、实时信号与异常波动")}
-    ${sourceBadge(liveData.overview, "总额与商品/市场为实时；信号、异常、热点为参考演示")}
+    ${sourceBadge(liveData.overview, "进出口总额与商品/市场结构", {
+      failed: liveData.overviewFailed,
+      what: "中国进出口总览（UN Comtrade）",
+    })}
     ${customsSection()}
     <div class="cn-terminal">
       <aside class="cn-rail">
         <section class="cn-panel">
           <h3 class="cn-panel-title">中国贸易脉搏</h3>
-          <div class="cn-mini-kpis">
+          ${
+            ready
+              ? `<div class="cn-mini-kpis">
             ${d.totals
               .map(
                 (t) =>
@@ -552,12 +648,20 @@
                   )}</small></div>`
               )
               .join("")}
-          </div>
-          <svg class="cn-spark" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${pts}" /></svg>
-          <small class="cn-spark-note">出口景气近12月整体上行 ${pct(8)}</small>
+          </div>`
+              : skelKpis(3)
+          }
+          ${
+            trend
+              ? `<svg class="cn-spark" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${pts}" /></svg>
+          <small class="cn-spark-note">近 ${trend.length} 期出口走势</small>`
+              : ready
+                ? `<small class="cn-spark-note cn-muted">该期间趋势数据缺失</small>`
+                : `<span class="cn-skel cn-skel--block"></span>`
+          }
         </section>
         <section class="cn-panel">
-          <h3 class="cn-panel-title">实时关键信号</h3>
+          <h3 class="cn-panel-title">关键信号 ${demoChip("这组指数为演示用参考值，尚未接入真实指数源")}</h3>
           <div class="cn-signals">
             ${SIGNALS.map(
               (s) =>
@@ -586,9 +690,9 @@
 
       <aside class="cn-rail">
         <section class="cn-panel">
-          <h3 class="cn-panel-title">异常波动商品</h3>
+          <h3 class="cn-panel-title">异常波动商品 ${demoChip("异常识别尚未接入实时算法，此处为参考示例")}</h3>
           <div class="cn-anomaly cn-anomaly--compact">
-            ${d.anomalies
+            ${DASHBOARD.anomalies
               .map(
                 (a) =>
                   `<div class="cn-anomaly-row"><strong>${esc(a.name)}</strong>${pct(a.change)}${riskTag(a.risk)}</div>`
@@ -597,7 +701,7 @@
           </div>
         </section>
         <section class="cn-panel">
-          <h3 class="cn-panel-title">机会 / 风险热点</h3>
+          <h3 class="cn-panel-title">机会 / 风险热点 ${demoChip("热点为分析观点示例，非实时观测")}</h3>
           <div class="cn-hotspots">
             ${HOTSPOTS.map(
               (h) =>
@@ -611,19 +715,25 @@
     </div>
 
     <div class="cn-grid-2">
-      ${panel("主要出口商品", bars(d.topExports, "var(--cn-red)"))}
-      ${panel("主要进口商品", bars(d.topImports, "var(--cn-gold)"))}
-      ${panel("主要出口市场(占比)", bars(d.exportMarkets, "var(--cn-red)"))}
-      ${panel("主要进口来源", bars(d.importSources, "var(--cn-gold)"))}
+      ${panel("主要出口商品", ready ? bars(d.topExports, "var(--cn-red)") : skelBars(6))}
+      ${panel("主要进口商品", ready ? bars(d.topImports, "var(--cn-gold)") : skelBars(6))}
+      ${panel("主要出口市场(占比)", ready ? bars(d.exportMarkets, "var(--cn-red)") : skelBars(6))}
+      ${panel("主要进口来源", ready ? bars(d.importSources, "var(--cn-gold)") : skelBars(6))}
     </div>`;
   }
 
   function viewProducts() {
     const keys = Object.keys(PRODUCTS);
-    const p = liveData.products[state.product] || PRODUCTS[state.product];
+    const live = liveData.products[state.product];
+    const preset = PRODUCTS[state.product] || {};
+    const ready = Boolean(live);
+    const p = live || preset;
     return `
     ${viewHead("商品机会雷达", "输入商品或 HS 编码，定位中国出口机会与准入风险")}
-    ${sourceBadge(liveData.products[state.product], "出口规模/目的国/增长为实时；竞争国与准入风险为定性参考")}
+    ${sourceBadge(live, "出口规模 / 目的国 / 增长市场", {
+      failed: liveData.productFailed[state.product],
+      what: `${state.product}（HS ${preset.hs || "—"}）出口数据`,
+    })}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -635,27 +745,39 @@
     <div class="cn-result">
       <div class="cn-result-head">
         <div>
-          <span class="cn-result-tag">商品 · HS ${esc(p.hs)}</span>
+          <span class="cn-result-tag">商品 · HS ${esc(p.hs || preset.hs || "—")}</span>
           <h3>${esc(state.product)}</h3>
         </div>
-        ${ring(p.score)}
+        ${ready ? ring(p.score) : `<div class="cn-ring cn-ring--skel"></div>`}
       </div>
       <div class="cn-result-grid">
-        ${field("中国出口规模", `${esc(p.scale)} · 同比 ${pct(p.yoy)}`)}
-        ${field("主要出口目的国", tagList(p.dest))}
-        ${field("增长最快市场", tagList(p.fastest))}
-        ${field("主要竞争国家", tagList(p.rivals))}
-        ${field("关税与准入风险", `${riskTag(p.barrierLevel)}<p class="cn-note">${esc(p.barrier)}</p>`)}
+        ${field("中国出口规模", ready ? `${esc(p.scale)} · 同比 ${pct(p.yoy)}` : skelLine(80))}
+        ${field("主要出口目的国", ready ? tagList(p.dest) : skelLine(95))}
+        ${field("增长最快市场", ready ? tagList(p.fastest) : skelLine(85))}
+        ${field("主要竞争国家", tagList(preset.rivals || []), demoChip("竞争国为分析观点，未接入实时数据源"))}
+        ${field(
+          "关税与准入风险",
+          `${riskTag(preset.barrierLevel || "中")}<p class="cn-note">${esc(
+            preset.barrier || "需结合目标国关税、认证与准入政策综合评估。"
+          )}</p>`,
+          demoChip("准入风险为定性判断，请以目标国官方公告为准")
+        )}
       </div>
     </div>`;
   }
 
   function viewMarkets() {
     const keys = Object.keys(MARKETS);
-    const m = liveData.markets[state.market] || MARKETS[state.market];
+    const live = liveData.markets[state.market];
+    const preset = MARKETS[state.market] || {};
+    const ready = Boolean(live);
+    const m = live || preset;
     return `
     ${viewHead("出口市场雷达", "选择目标国家，评估中国企业进入机会与政策风险")}
-    ${sourceBadge(liveData.markets[state.market], "进口商品/增长/份额为实时；准入风险为定性参考")}
+    ${sourceBadge(live, "进口商品 / 增长 / 出口额", {
+      failed: liveData.marketFailed[state.market],
+      what: `中国对${state.market}出口数据`,
+    })}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -667,22 +789,34 @@
     <div class="cn-result">
       <div class="cn-result-head">
         <div>
-          <span class="cn-result-tag">出口市场 · ${esc(m.region)}</span>
+          <span class="cn-result-tag">出口市场 · ${esc(preset.region || "—")}</span>
           <h3>${esc(state.market)}</h3>
         </div>
-        ${ring(m.score)}
+        ${ready ? ring(m.score) : `<div class="cn-ring cn-ring--skel"></div>`}
       </div>
       <div class="cn-result-grid">
-        ${field("从中国进口最多的商品", tagList(m.topFromCN))}
-        ${field("增长最快商品", tagList(m.fastest))}
+        ${field("从中国进口最多的商品", ready ? tagList(m.topFromCN) : skelLine(95))}
+        ${field("增长最快商品", ready ? tagList(m.fastest) : skelLine(85))}
         ${field(
           "中国对该国出口额",
-          `<strong class="cn-bignum">${esc(m.exportText || "—")}</strong><p class="cn-note">中国市场份额约 ${esc(
-            m.shareText || (m.share != null ? m.share + "%" : "—")
-          )}（参考）</p>`
+          ready
+            ? `<strong class="cn-bignum">${esc(m.exportText || "—")}</strong>${
+                preset.share != null
+                  ? `<p class="cn-note">中国市场份额约 ${esc(preset.share + "%")} ${demoChip(
+                      "份额为估算参考值，非实时计算"
+                    )}</p>`
+                  : ""
+              }`
+            : skelLine(60)
         )}
-        ${field("适合中国企业进入的细分品类", tagList(m.niches))}
-        ${field("关税与政策风险", `${riskTag(m.barrierLevel)}<p class="cn-note">${esc(m.barrier)}</p>`)}
+        ${field("适合中国企业进入的细分品类", ready ? tagList(m.niches) : skelLine(90))}
+        ${field(
+          "关税与政策风险",
+          `${riskTag(preset.barrierLevel || "中")}<p class="cn-note">${esc(
+            preset.barrier || "需结合目标国关税、本地化与准入政策综合评估。"
+          )}</p>`,
+          demoChip("政策风险为定性判断，请以目标国官方公告为准")
+        )}
       </div>
     </div>
     ${riskSection()}`;
@@ -691,7 +825,8 @@
   // 信保国别风险评级区块（data/sinosure-risk.json 配置后显示）
   function riskSection() {
     const data = liveData.countryRisk;
-    if (!data || !data.configured) return "";
+    if (!data) return "";
+    if (!data.configured) return notConfigured("国别风险评级（中国信保）", data.note);
     return `
     <h3 class="cn-section-sub">国别风险评级（${esc(data.edition || "最新版")}）</h3>
     <div class="cn-source cn-source--live"><i></i>数据来源：${esc(data.source)} · 评级 ${esc(data.scale)}</div>
@@ -707,27 +842,31 @@
   }
 
   function viewImport() {
+    const ready = Boolean(liveData.dependency);
     const items = liveData.dependency || DEPENDENCY;
     const depLive = (liveData.dependency || []).find((d) => d.live);
     return `
     ${viewHead("进口依赖雷达", "中国关键进口依赖商品、来源集中度与国产替代机会")}
-    ${sourceBadge(depLive ? { period: depLive.period } : null, "进口额/来源国/集中度为实时；替代难度与中断风险为定性参考")}
+    ${sourceBadge(depLive ? { period: depLive.period } : null, "进口额 / 来源国 / 集中度", {
+      failed: liveData.dependencyFailed,
+      what: "关键商品进口依赖数据",
+    })}
     <div class="cn-dep">
       ${items.map(
         (it) => `
         <article class="cn-dep-card">
           <div class="cn-dep-head">
             <h3>${esc(it.name)}</h3>
-            ${riskTag(it.risk)}
+            ${riskTag(it.risk)} ${demoChip("中断风险为定性判断")}
           </div>
           <div class="cn-dep-grid">
-            ${field("进口金额(年化)", `<strong>${esc(it.amount)}</strong>`)}
-            ${field("主要来源国", tagList(it.sources))}
-            ${field("来源国集中度", esc(it.concentration))}
-            ${field("替代难度", riskTag(it.difficulty))}
+            ${field("进口金额(年化)", ready && it.live ? `<strong>${esc(it.amount)}</strong>` : skelLine(70))}
+            ${field("主要来源国", ready && it.live ? tagList(it.sources) : skelLine(90))}
+            ${field("来源国集中度", ready && it.live ? esc(it.concentration) : skelLine(50))}
+            ${field("替代难度", riskTag(it.difficulty), demoChip("替代难度为分析观点"))}
           </div>
           <div class="cn-dep-foot">
-            <span>国产替代机会</span>
+            <span>国产替代机会 ${demoChip("替代路径为分析观点，非实时数据")}</span>
             <p>${esc(it.domestic)}</p>
           </div>
         </article>`
@@ -737,16 +876,27 @@
 
   function viewRegions() {
     const lr = liveData.regions;
-    const top = lr ? lr.list[0] : [...REGIONS.list].sort((a, b) => b.heat - a.heat)[0];
+    const top = lr ? lr.list[0] : null;
     const cr5 = lr ? Math.round(lr.list.slice(0, 5).reduce((s, p) => s + p.share, 0)) : null;
+    // 省级出口是海关总署真实数据，但为内置固定版本 → 标"存档数据"而非"实时"
+    const strip = lr
+      ? sourceStrip({
+          tier: lr.tier === "static" ? "static" : "live",
+          source: lr.source,
+          period: lr.period,
+          note: lr.vintageNote,
+        })
+      : liveData.regionsFailed
+        ? errorStrip("省级出口数据")
+        : loadingStrip("省级出口数据");
     return `
     ${viewHead("省市产业雷达", "各省出口规模、产业优势与机会 · 交互式中国地图")}
-    ${sourceBadge(lr ? { source: lr.source, period: lr.period } : null, "出口额为海关口径；产业优势/机会为分析观点")}
+    ${strip}
     <div class="cn-map-metrics">
-      ${metric("出口第一大省", top.name, lr ? top.exportText : "热度 " + top.heat)}
+      ${metric("出口第一大省", lr ? top.name : "—", lr ? top.exportText : "加载中…")}
       ${metric("前五省合计占比", cr5 != null ? cr5 + "%" : "—", "出口集中度 CR5")}
-      ${metric("覆盖省市", (lr ? lr.list.length : 31) + " 个", "全口径省级出口")}
-      ${metric("数据口径", lr ? "海关 · 2024" : "省级热力", "点击省份查看详情")}
+      ${metric("覆盖省市", (lr ? lr.list.length : "—") + " 个", "全口径省级出口")}
+      ${metric("数据口径", lr ? esc(lr.period || "海关口径") : "—", "点击省份查看详情")}
     </div>
     <div class="cn-region-wrap">
       <div class="cn-map-stage">
@@ -784,9 +934,9 @@
         `
         <span class="cn-result-tag">省市产业</span>
         <h3>${esc(p.name)}</h3>
-        <div class="cn-field"><span>优势产业</span>${tagList(p.adv)}</div>
-        <div class="cn-field"><span>产业机会</span><p class="cn-note">${esc(p.opp)}</p></div>
-        <div class="cn-field"><span>主要风险</span><p class="cn-note">${esc(p.risk)}</p></div>
+        <div class="cn-field"><span>优势产业 ${demoChip("产业判断为分析观点")}</span>${tagList(p.adv)}</div>
+        <div class="cn-field"><span>产业机会 ${demoChip("产业判断为分析观点")}</span><p class="cn-note">${esc(p.opp)}</p></div>
+        <div class="cn-field"><span>主要风险 ${demoChip("产业判断为分析观点")}</span><p class="cn-note">${esc(p.risk)}</p></div>
         <p class="cn-hint">出口额为海关口径真实数据；产业优势/机会/风险为分析观点。</p>`
       );
     }
@@ -802,7 +952,7 @@
   function renderChongqing(d) {
     return `
       <div class="cn-result-head">
-        <div><span class="cn-result-tag">省市样板</span><h3>${esc(d.title)}</h3></div>
+        <div><span class="cn-result-tag">省市样板 ${demoChip("样板内容为产业研究示例")}</span><h3>${esc(d.title)}</h3></div>
         ${ring(d.score, "产业活力")}
       </div>
       <p class="cn-note">${esc(d.intro)}</p>
@@ -1097,8 +1247,9 @@
   function panel(title, body) {
     return `<section class="cn-panel"><h3 class="cn-panel-title">${esc(title)}</h3>${body}</section>`;
   }
-  function field(label, body) {
-    return `<div class="cn-field"><span>${esc(label)}</span>${body}</div>`;
+  // chip 为可信 HTML（仅由 demoChip() 产生）；label 仍然转义，避免把标签当模板注入
+  function field(label, body, chip) {
+    return `<div class="cn-field"><span>${esc(label)}${chip || ""}</span>${body}</div>`;
   }
   function list(arr) {
     return `<ul class="cn-list">${arr.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
@@ -1148,7 +1299,6 @@
       topImports: m(o.topImports),
       exportMarkets: m(o.exportMarkets),
       importSources: m(o.importSources),
-      anomalies: DASHBOARD.anomalies, // 异常波动暂为参考演示
     };
   }
   function adaptProduct(api, name) {
@@ -1181,7 +1331,7 @@
       })
       .finally(() => {
         liveData.overviewLoading = false;
-        if (state.view === "dashboard") render();
+        if (state.view === "dashboard" || state.view === "home") render();
       });
   }
   function ensureProduct(name) {
@@ -1304,7 +1454,14 @@
       .then((d) => {
         const byName = {};
         (d.provinces || []).forEach((p) => (byName[p.name] = p));
-        liveData.regions = { source: d.source, period: d.period, list: d.provinces || [], byName };
+        liveData.regions = {
+          source: d.source,
+          period: d.period,
+          tier: d.tier,
+          vintageNote: d.vintageNote,
+          list: d.provinces || [],
+          byName,
+        };
       })
       .catch(() => {
         liveData.regionsFailed = true;
@@ -1331,10 +1488,16 @@
         if (state.view === "policy") render();
       });
   }
+  // 未配置运营数据时的空状态：过去是静默返回 ""，用户分不清"没数据"还是"加载失败"
+  function notConfigured(title, note) {
+    return `<div class="cn-empty"><b>${esc(title)}</b><span>${esc(note || "该数据源尚未配置")}</span></div>`;
+  }
+
   // 海关总署月度数据区块（data/customs-monthly.json 配置后显示在总览顶部）
   function customsSection() {
     const data = liveData.customs;
-    if (!data || !data.configured) return "";
+    if (!data) return "";
+    if (!data.configured) return notConfigured("海关总署月度进出口", data.note);
     return `
     <div class="cn-map-metrics">
       ${data.entries
@@ -1354,7 +1517,7 @@
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         liveData.customs = d;
-        if (d.configured && state.view === "dashboard") render();
+        if (state.view === "dashboard") render(); // 未配置时也要渲染空状态提示
       })
       .catch(() => {})
       .finally(() => {
@@ -1368,7 +1531,7 @@
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         liveData.countryRisk = d;
-        if (d.configured && state.view === "markets") render();
+        if (state.view === "markets") render(); // 未配置时也要渲染空状态提示
       })
       .catch(() => {})
       .finally(() => {
@@ -1463,13 +1626,14 @@
         .join("")}
     </div>`;
   }
-  function sourceBadge(live, note) {
+  // 数据来源条（兼容旧调用）：拿到实时数据才标"实时"，否则如实显示加载中/失败，
+  // 不再出现"暂显示示例值"这种把演示数字当真实数据展示的情况。
+  function sourceBadge(live, note, opts = {}) {
     if (live && (live.period != null || live.source)) {
-      const src = live.source || "UN Comtrade";
-      const per = live.period != null ? " · " + live.period + (typeof live.period === "number" ? " 年度" : "") : "";
-      return `<div class="cn-source cn-source--live"><i></i>数据来源：${esc(src)}${per}${note ? " · " + esc(note) : ""}</div>`;
+      return sourceStrip({ tier: "live", source: live.source || "UN Comtrade", period: live.period, note });
     }
-    return `<div class="cn-source"><i></i>正在接入实时数据…（暂显示示例值，稍候自动刷新）</div>`;
+    if (opts.failed) return errorStrip(opts.what);
+    return loadingStrip(opts.what);
   }
 
   // ----------------------- 路由 + 渲染 -----------------------
@@ -1494,7 +1658,7 @@
     bindViewEvents();
     if (state.view === "regions") ensureRegions();
     if (state.view === "regions" || state.view === "dashboard") mountChinaMap();
-    if (state.view === "dashboard") ensureOverview();
+    if (state.view === "dashboard" || state.view === "home") ensureOverview();
     if (state.view === "dashboard") ensureCustoms();
     if (state.view === "products") ensureProduct(state.product);
     if (state.view === "markets") ensureMarket(state.market);
@@ -1584,6 +1748,22 @@
         generateReport(q);
       });
     }
+    // 失败条上的「重试」：清掉当前视图的失败标记后重新拉取
+    const retry = main.querySelector("[data-retry]");
+    if (retry) retry.addEventListener("click", retryCurrentView);
+  }
+
+  // 重试当前视图的数据加载（此前失败会被静默吞掉，用户没有任何补救手段）
+  function retryCurrentView() {
+    const v = state.view;
+    if (v === "dashboard" || v === "home") liveData.overviewFailed = false;
+    if (v === "products") delete liveData.productFailed[state.product];
+    if (v === "markets") delete liveData.marketFailed[state.market];
+    if (v === "import") liveData.dependencyFailed = false;
+    if (v === "regions") liveData.regionsFailed = false;
+    if (v === "policy") liveData.policyFailed = false;
+    if (v === "freight") liveData.freightFailed = false;
+    render();
   }
 
   // 全局委托：导航/选择/跳转
