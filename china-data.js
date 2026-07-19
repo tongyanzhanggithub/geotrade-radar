@@ -777,6 +777,93 @@ function readDataFile(name) {
   }
 }
 
+// =====================================================================
+// 运营数据文件的后台读写（供 admin.html 编辑，免去登服务器改 JSON）
+// 只允许下面白名单里的三个文件，且每个都有结构校验，
+// 写坏了前端会退化成"尚未配置"，所以宁可拒绝也不写入非法内容。
+// =====================================================================
+const OPERATOR_FILES = {
+  "customs-monthly.json": {
+    label: "海关总署月度进出口",
+    arrayKey: "entries",
+    validate(item, i) {
+      if (!/^\d{4}-\d{2}$/.test(String(item.period || ""))) throw new Error(`第 ${i + 1} 行：period 需为 YYYY-MM`);
+      for (const k of ["exports", "imports"]) {
+        if (item[k] == null || Number.isNaN(Number(item[k]))) throw new Error(`第 ${i + 1} 行：${k} 需为数字`);
+      }
+      return {
+        period: String(item.period),
+        exports: Number(item.exports),
+        imports: Number(item.imports),
+        exportsYoy: String(item.exportsYoy || ""),
+        importsYoy: String(item.importsYoy || ""),
+      };
+    },
+  },
+  "sinosure-risk.json": {
+    label: "中国信保国别风险评级",
+    arrayKey: "countries",
+    validate(item, i) {
+      const name = String(item.name || "").trim();
+      const rating = Number(item.rating);
+      if (!name) throw new Error(`第 ${i + 1} 行：缺少国家名`);
+      if (!(rating >= 1 && rating <= 9)) throw new Error(`第 ${i + 1} 行：rating 需为 1-9`);
+      return { name, rating, trend: String(item.trend || "稳定"), note: String(item.note || "") };
+    },
+  },
+  "freight-routes.json": {
+    label: "SCFI 分航线运价",
+    arrayKey: "routes",
+    validate(item, i) {
+      const route = String(item.route || "").trim();
+      if (!route) throw new Error(`第 ${i + 1} 行：缺少航线名`);
+      if (item.rate == null || Number.isNaN(Number(item.rate))) throw new Error(`第 ${i + 1} 行：rate 需为数字`);
+      return {
+        route,
+        unit: String(item.unit || "USD/TEU"),
+        rate: Number(item.rate),
+        changePct: item.changePct == null ? 0 : Number(item.changePct),
+        note: String(item.note || ""),
+      };
+    },
+  },
+};
+
+function operatorSpec(name) {
+  const spec = OPERATOR_FILES[name];
+  if (!spec) throw new Error("未知的数据文件");
+  return spec;
+}
+
+function readOperatorFile(name) {
+  const spec = operatorSpec(name);
+  const file = readDataFile(name) || {};
+  return {
+    name,
+    label: spec.label,
+    arrayKey: spec.arrayKey,
+    content: { ...file, [spec.arrayKey]: Array.isArray(file[spec.arrayKey]) ? file[spec.arrayKey] : [] },
+  };
+}
+
+function writeOperatorFile(name, content) {
+  const spec = operatorSpec(name);
+  const rows = content?.[spec.arrayKey];
+  if (!Array.isArray(rows)) throw new Error(`缺少 ${spec.arrayKey} 数组`);
+  if (rows.length > 500) throw new Error("行数过多（上限 500）");
+  const clean = rows.map((item, i) => spec.validate(item || {}, i));
+  const payload = {
+    ...content,
+    [spec.arrayKey]: clean,
+    updatedAt: content.updatedAt || new Date().toISOString().slice(0, 10),
+  };
+  const dir = path.join(__dirname, "data");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, name), JSON.stringify(payload, null, 2), "utf8");
+  // 这三个文件每次请求都直接读盘（不走 12 小时缓存），保存后立即生效
+  return { ok: true, name, saved: clean.length, updatedAt: payload.updatedAt };
+}
+
 // 海关总署月度进出口数据（data/customs-monthly.json，运营者每月更新）
 async function customsMonthly() {
   const file = readDataFile("customs-monthly.json");
@@ -809,4 +896,19 @@ async function countryRisk() {
   };
 }
 
-module.exports = { overview, product, market, dependency, tradeRemedies, regions, generateReport, mofcomAnnouncements, customsMonthly, countryRisk, freightIndex };
+module.exports = {
+  overview,
+  product,
+  market,
+  dependency,
+  tradeRemedies,
+  regions,
+  generateReport,
+  mofcomAnnouncements,
+  customsMonthly,
+  countryRisk,
+  freightIndex,
+  readOperatorFile,
+  writeOperatorFile,
+  OPERATOR_FILES,
+};

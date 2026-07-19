@@ -1475,6 +1475,26 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 200, auth.userStats());
       return;
     }
+    // 运营数据文件（海关月度 / 信保国别风险 / SCFI 分航线）：
+    // 这三个源官网有反爬或仅以报告形式发布，需运营者手工维护。
+    // 此前只能登服务器改 JSON，这里开放读写接口供后台页面编辑。
+    if (pathname === "/api/admin/datafile" && request.method === "GET") {
+      try {
+        sendJson(response, 200, chinaData.readOperatorFile(url.searchParams.get("name")));
+      } catch (error) {
+        sendJson(response, 400, { error: error.message });
+      }
+      return;
+    }
+    if (pathname === "/api/admin/datafile" && request.method === "POST") {
+      try {
+        const body = await readJsonBody(request);
+        sendJson(response, 200, chinaData.writeOperatorFile(body.name, body.content));
+      } catch (error) {
+        sendJson(response, 400, { error: error.message });
+      }
+      return;
+    }
     if (pathname === "/api/admin/usage" && request.method === "GET") {
       sendJson(response, 200, auth.usageSummary(Number(url.searchParams.get("days")) || 14));
       return;
