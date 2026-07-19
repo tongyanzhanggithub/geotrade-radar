@@ -252,6 +252,32 @@ body.china {
 }
 .cn-empty b { font-size: 13px; color: var(--text); }
 .cn-empty span { font-size: 12px; color: var(--muted); }
+.cn-empty--hint { border-color: rgba(88, 213, 188, 0.28); background: rgba(88, 213, 188, 0.04); }
+
+/* 「我的品类 / 我的市场」：把用户画像里的项目顶到最前 */
+.cn-mine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(88, 213, 188, 0.28);
+  border-radius: 12px;
+  background: rgba(88, 213, 188, 0.05);
+}
+.cn-mine-tag {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(88, 213, 188, 0.16);
+  color: var(--cn-green);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cn-selector--mine { margin: 0; }
+.cn-pill--mine { border-color: rgba(88, 213, 188, 0.35); }
+.cn-pill--mine.active { background: var(--cn-green); border-color: var(--cn-green); color: #06201b; }
 
 /* 骨架屏：加载期间的占位，绝不使用编造数字顶替 */
 .cn-skel {

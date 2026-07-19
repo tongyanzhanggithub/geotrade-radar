@@ -36,6 +36,9 @@
     report: "摩托车零配件 · 东盟出口机会",
   };
 
+  // 当前用户画像（/api/profile），会员专属；免费用户为 null
+  let myProfile = null;
+
   // 中国省级地图（Leaflet + DataV GeoJSON）
   const GEO_URL = "https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json";
   let cnGeoCache = null; // 缓存省界数据，避免重复请求
@@ -728,12 +731,15 @@
     const preset = PRODUCTS[state.product] || {};
     const ready = Boolean(live);
     const p = live || preset;
+    // 用户画像里的自定义 HS：没有预置的定性内容，只展示真实数据部分
+    const isCustomHs = !PRODUCTS[state.product] && /^\d{4,10}$/.test(state.product);
     return `
     ${viewHead("商品机会雷达", "输入商品或 HS 编码，定位中国出口机会与准入风险")}
     ${sourceBadge(live, "出口规模 / 目的国 / 增长市场", {
       failed: liveData.productFailed[state.product],
       what: `${state.product}（HS ${preset.hs || "—"}）出口数据`,
     })}
+    ${myHsCodes().length ? myPills("品类", myHsCodes(), state.product, "product", (c) => "HS " + c) : profileHint("品类")}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -745,8 +751,8 @@
     <div class="cn-result">
       <div class="cn-result-head">
         <div>
-          <span class="cn-result-tag">商品 · HS ${esc(p.hs || preset.hs || "—")}</span>
-          <h3>${esc(state.product)}</h3>
+          <span class="cn-result-tag">商品 · HS ${esc(p.hs || preset.hs || state.product)}</span>
+          <h3>${esc(isCustomHs ? live?.desc || "HS " + state.product : state.product)}</h3>
         </div>
         ${ready ? ring(p.score) : `<div class="cn-ring cn-ring--skel"></div>`}
       </div>
@@ -778,6 +784,7 @@
       failed: liveData.marketFailed[state.market],
       what: `中国对${state.market}出口数据`,
     })}
+    ${myPills("市场", myMarkets(), state.market, "market")}
     <div class="cn-selector" role="tablist">
       ${keys
         .map(
@@ -1334,11 +1341,16 @@
         if (state.view === "dashboard" || state.view === "home") render();
       });
   }
+  // 品类键既可以是预置品名（摩托车零配件），也可以是用户画像里的纯 HS 编码（8714）
+  function hsFor(key) {
+    if (/^\d{4,10}$/.test(key)) return key;
+    return (PRODUCTS[key] || {}).hs || null;
+  }
   function ensureProduct(name) {
-    const preset = PRODUCTS[name];
-    if (!preset || liveData.products[name] || liveData.productLoading[name] || liveData.productFailed[name]) return;
+    const hs = hsFor(name);
+    if (!hs || liveData.products[name] || liveData.productLoading[name] || liveData.productFailed[name]) return;
     liveData.productLoading[name] = true;
-    fetch("/api/china/product?hs=" + encodeURIComponent(preset.hs))
+    fetch("/api/china/product?hs=" + encodeURIComponent(hs))
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((api) => {
         liveData.products[name] = adaptProduct(api, name);
@@ -1824,8 +1836,62 @@
     guard.hidden = true;
     app.hidden = false;
     bindGlobalEvents();
+    // 先取画像再首屏渲染，避免"我的品类"在页面加载后才闪出来
+    await loadProfile();
     syncFromHash();
     loadTopbarStatus();
+  }
+
+  // ----------------------- 我的画像（跨雷达复用） -----------------------
+  // 画像在全球雷达里设置（/api/profile），这里读来做个性化：
+  // 外贸老板关心的是自己那几个 HS 编码和目标市场，而不是全品类。
+  async function loadProfile() {
+    try {
+      const res = await fetch("/api/profile", { credentials: "same-origin" });
+      if (!res.ok) return; // 免费用户 403：保持通用视图，不报错
+      const data = await res.json();
+      myProfile = data.profile || null;
+    } catch {
+      /* 画像拉取失败不影响主功能 */
+    }
+  }
+
+  // 画像里的 HS 编码：只认 4-10 位数字；其余（如中文品名）交给下面的映射
+  function myHsCodes() {
+    return (myProfile?.hsCodes || []).map((s) => String(s).trim()).filter((s) => /^\d{4,10}$/.test(s));
+  }
+
+  // 画像里能对应到本雷达预置市场的国家
+  function myMarkets() {
+    const names = (myProfile?.countries || []).map((s) => String(s).trim());
+    return Object.keys(MARKETS).filter((k) => names.some((n) => n && (k.includes(n) || n.includes(k))));
+  }
+
+  const hasProfile = () => Boolean(myHsCodes().length || myMarkets().length);
+
+  // "我的品类/我的市场"快捷选择条：把用户自己关心的项目顶到最前面
+  function myPills(what, items, current, attr, labelFn) {
+    if (!items.length) return "";
+    return `<div class="cn-mine">
+      <span class="cn-mine-tag">我的${esc(what)}</span>
+      <div class="cn-selector cn-selector--mine">
+        ${items
+          .map(
+            (item) =>
+              `<button class="cn-pill cn-pill--mine ${item === current ? "active" : ""}" data-${attr}="${esc(
+                item
+              )}">${esc(labelFn ? labelFn(item) : item)}</button>`
+          )
+          .join("")}
+      </div>
+    </div>`;
+  }
+
+  // 画像为空时的引导条：告诉用户去哪儿设置
+  function profileHint(what) {
+    return `<div class="cn-empty cn-empty--hint"><b>还没设置「我的${esc(what)}」</b><span>在
+      <a href="index.html" style="color:var(--cn-green)">全球雷达 → 我的雷达 ⚙</a>
+      里填写你的 HS 编码与目标市场，这里就会优先展示你自己的品类。</span></div>`;
   }
 
   // 顶栏状态徽章：出口增速 + 更新时间(来自 overview)、贸易摩擦(对华贸易救济立案数)
